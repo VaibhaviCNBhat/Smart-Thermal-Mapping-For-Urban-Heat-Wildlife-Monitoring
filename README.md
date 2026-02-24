@@ -35,7 +35,7 @@ Thermal band values are converted from digital numbers to brightness temperature
 Cloud-contaminated and invalid patches are filtered prior to training.
 
 📂 Project Structure
-thermal-sr-project/
+Smart-Thermal-Mapping-For-Urban-Heat-Wildlife-Monitoring/
 │
 ├── data/               # Raw and processed satellite data
 ├── src/                # Model, training, and utility scripts
@@ -46,6 +46,57 @@ thermal-sr-project/
 └── README.md
 
 🚀 Installation
-git clone https://github.com/your-username/thermal-sr-project.git
-cd thermal-sr-project
+git clone https://github.com/VaibhaviCNBhat/Smart-Thermal-Mapping-For-Urban-Heat-Wildlife-Monitoring.git
+cd Smart-Thermal-Mapping-For-Urban-Heat-Wildlife-Monitoring
 pip install -r requirements.txt
+
+Recommended:
+Python 3.9+
+PyTorch
+rasterio
+numpy
+matplotlib
+
+
+🧪 Training
+python src/training/train.py --config configs/default_config.yaml
+
+Checkpoints will be saved in:
+outputs/checkpoints/
+
+🔍 Inference & Visualization
+Run super-resolution on a sample scene:
+python src/inference/infer.py --input data/sample_demo/
+
+The script will generate:
+Super-resolved GeoTIFF (scientific output)
+Colorized PNG heatmap (presentation output)
+
+
+📈 Evaluation Metrics
+We evaluate performance using:
+PSNR (Peak Signal-to-Noise Ratio)
+SSIM (Structural Similarity Index)
+RMSE (Kelvin) for temperature accuracy
+
+
+🖼️ Demo Output
+During live demonstration, the system displays:
+Low-resolution thermal heatmap
+Super-resolved thermal heatmap
+Quantitative metric comparison
+Both images are displayed using identical temperature scales for fair visual comparison.
+
+
+🌍 Applications
+Urban Heat Island Analysis
+Wildfire Monitoring
+Climate Risk Mapping
+Environmental Planning
+Precision Agriculture
+
+
+⚠️ Limitations
+Performance depends on optical–thermal structural correlation.
+Cloud contamination reduces usable training data.
+Enhancement is bounded by physical sensor limitations.
