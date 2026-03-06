@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThermalVision — Smart Thermal Mapping</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #131921;
+    --border: rgba(255,255,255,0.07);
+    --accent: #ff5c1a;
+    --accent2: #00d9b0;
+    --warn: #ffbe00;
+    --text: #e8e4dc;
+    --muted: #6b7280;
+    --thermal-cold: #0a1628;
+    --thermal-cool: #1a4a8a;
+    --thermal-mid: #2ea3c4;
+    --thermal-warm: #f5a623;
+    --thermal-hot: #e8341c;
+    --thermal-max: #fff0e0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ═══ NAVIGATION ═══ */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem;
+    height: 60px;
+    background: rgba(8,12,16,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .nav-logo span { color: var(--text); }
+  .nav-links {
+    display: flex; gap: 0.25rem;
+  }
+  .nav-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 0.7rem;
+    color: var(--muted); padding: 0.4rem 0.9rem;
+    border-radius: 3px; transition: all 0.2s;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--surface2); }
+  .nav-btn.active { color: var(--accent); background: rgba(255,92,26,0.1); }
+  .nav-status {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.65rem; color: var(--accent2);
+  }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* ═══ PAGES ═══ */
+  .page { display: none; padding-top: 60px; min-height: 100vh; }
+  .page.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ══════════════════════════════════
+     PAGE 1 — DASHBOARD
+  ══════════════════════════════════ */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: auto;
+    gap: 1px;
+    min-height: calc(100vh - 60px);
+    background: var(--border);
+  }
+  .panel {
+    background: var(--surface);
+    padding: 1.5rem;
+  }
+
+  /* Sidebar Left */
+  .sidebar-label {
+    font-size: 0.6rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--surface2);
+    border-radius: 4px;
+    border-left: 2px solid transparent;
+  }
+  .metric-card.hot { border-left-color: var(--thermal-hot); }
+  .metric-card.warm { border-left-color: var(--thermal-warm); }
+  .metric-card.cool { border-left-color: var(--thermal-cool); }
+  .metric-card.ok { border-left-color: var(--accent2); }
+  .metric-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; }
+  .metric-value {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem;
+  }
+  .metric-value.hot { color: var(--thermal-hot); }
+  .metric-value.warm { color: var(--thermal-warm); }
+  .metric-value.cool { color: var(--thermal-cool); }
+  .metric-value.ok { color: var(--accent2); }
+  .metric-sub { font-size: 0.6rem; color: var(--muted); margin-top: 0.2rem; }
+
+  /* Main Map Area */
+  .map-panel {
+    position: relative; overflow: hidden;
+  }
+  .map-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .map-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+  .map-controls { display: flex; gap: 0.5rem; }
+  .ctrl-btn {
+    font-family: 'DM Mono', monospace; font-size: 0.65rem;
+    padding: 0.3rem 0.7rem; border-radius: 3px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text); transition: all 0.2s; text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ctrl-btn:hover, .ctrl-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* Thermal Map SVG */
+  .thermal-map-container {
+    padding: 1.5rem;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .thermal-canvas {
+    width: 100%; max-width: 640px;
+    border-radius: 6px; overflow: hidden;
+    position: relative;
+  }
+  .thermal-grid {
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    gap: 1px;
+    background: #000;
+  }
+  .thermal-cell {
+    aspect-ratio: 1;
+    transition: filter 0.3s;
+  }
+  .thermal-cell:hover { filter: brightness(1.4); }
+
+  .map-legend {
+    display: flex; align-items: center; gap: 1rem;
+    margin-top: 1rem; font-size: 0.6rem; color: var(--muted);
+  }
+  .legend-bar {
+    height: 6px; width: 160px; border-radius: 3px;
+    background: linear-gradient(to right,
+      var(--thermal-cold), var(--thermal-cool), var(--thermal-mid),
+      var(--thermal-warm), var(--thermal-hot), var(--thermal-max)
+    );
+  }
+  .legend-labels { display: flex; justify-content: space-between; width: 160px; font-size: 0.55rem; color: var(--muted); }
+
+  /* Comparison row */
+  .comparison-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1px; margin: 1px 0;
+  }
+  .compare-panel {
+    background: var(--surface);
+    padding: 1rem 1.5rem;
+  }
+  .compare-label {
+    font-size: 0.6rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 0.75rem;
+  }
+  .mini-grid {
+    display: grid; grid-template-columns: repeat(16, 1fr); gap: 1px;
+    background: #000; border-radius: 3px; overflow: hidden;
+  }
+  .mini-cell { aspect-ratio: 1; }
+
+  /* Sidebar Right */
+  .alert-item {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: var(--surface2);
+    border-radius: 4px;
+    border-left: 2px solid var(--thermal-hot);
+  }
+  .alert-item.warn { border-left-color: var(--thermal-warm); }
+  .alert-item.info { border-left-color: var(--accent2); }
+  .alert-type { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--thermal-hot); margin-bottom: 0.3rem; }
+  .alert-type.warn { color: var(--thermal-warm); }
+  .alert-type.info { color: var(--accent2); }
+  .alert-msg { font-size: 0.72rem; color: var(--text); line-height: 1.5; }
+  .alert-time { font-size: 0.58rem; color: var(--muted); margin-top: 0.3rem; }
+
+  /* Activity bar */
+  .activity-bars {
+    display: flex; align-items: flex-end; gap: 3px; height: 60px; margin-top: 1rem;
+  }
+  .act-bar {
+    flex: 1; background: var(--surface2); border-radius: 2px;
+    transition: height 0.5s;
+  }
+
+  /* ══════════════════════════════════
+     PAGE 2 — INFERENCE
+  ══════════════════════════════════ */
+  .inference-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    min-height: calc(100vh - 60px);
+  }
+  .inf-panel { background: var(--surface); padding: 2rem; }
+  .inf-title {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  .inf-subtitle { font-size: 0.7rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.7; }
+
+  .upload-zone {
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 6px; padding: 3rem 2rem;
+    text-align: center; cursor: pointer;
+    transition: all 0.3s;
+    background: var(--surface2);
+  }
+  .upload-zone:hover { border-color: var(--accent); background: rgba(255,92,26,0.04); }
+  .upload-icon {
+    font-size: 2.5rem; margin-bottom: 1rem;
+    display: block;
+  }
+  .upload-text { font-size: 0.75rem; color: var(--muted); }
+  .upload-text strong { color: var(--text); display: block; font-size: 0.85rem; margin-bottom: 0.4rem; font-family: 'Syne', sans-serif; font-weight: 600; }
+
+  .file-info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--surface2);
+    border-radius: 4px;
+    font-size: 0.7rem;
+  }
+  .file-info-row {
+    display: flex; justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .file-info-row:last-child { border-bottom: none; }
+  .file-info-row span:last-child { color: var(--text); }
+
+  .param-section { margin-top: 2rem; }
+  .param-label {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); margin-bottom: 1rem;
+  }
+  .param-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1rem;
+  }
+  .param-name { font-size: 0.72rem; color: var(--text); }
+  .param-control {
+    display: flex; gap: 0.5rem;
+  }
+  .radio-opt {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.62rem; border-radius: 3px;
+    border: 1px solid var(--border); cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    background: var(--surface2); color: var(--muted);
+    transition: all 0.2s;
+  }
+  .radio-opt.active { border-color: var(--accent); color: var(--accent); background: rgba(255,92,26,0.08); }
+  .radio-opt:hover { border-color: var(--muted); color: var(--text); }
+
+  .run-btn {
+    margin-top: 2rem; width: 100%;
+    padding: 1rem;
+    background: var(--accent);
+    border: none; border-radius: 4px; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem;
+    color: #fff; letter-spacing: 0.05em; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .run-btn:hover { background: #ff7040; transform: translateY(-1px); }
+  .run-btn:active { transform: translateY(0); }
+
+  /* Output panel */
+  .output-tabs {
+    display: flex; gap: 0; margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    font-family: 'DM Mono', monospace; font-size: 0.68rem;
+    padding: 0.6rem 1.2rem; border: none; background: none; cursor: pointer;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+  .tab-btn:hover { color: var(--text); }
+
+  .output-compare {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .img-frame {
+    border-radius: 4px; overflow: hidden;
+    background: #000;
+  }
+  .img-label {
+    padding: 0.4rem 0.75rem;
+    background: var(--surface2); font-size: 0.6rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Metrics */
+  .metrics-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1.5rem;
+  }
+  .metric-box {
+    background: var(--surface2); border-radius: 4px;
+    padding: 1rem; text-align: center;
+  }
+  .metric-box-val {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.4rem;
+    color: var(--accent2); margin-bottom: 0.3rem;
+  }
+  .metric-box-name { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* Progress bar */
+  .progress-section { margin-top: 1.5rem; }
+  .progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.65rem; color: var(--muted); margin-bottom: 0.4rem;
+  }
+  .progress-bar {
+    height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(to right, var(--accent2), var(--accent));
+    transition: width 1.5s ease;
+  }
+
+  /* ══════════════════════════════════
+     PAGE 4 — WILDLIFE / ANALYSIS
+  ══════════════════════════════════ */
+  .analysis-layout {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 1px;
+    background: var(--border);
+  }
+  .analysis-panel {
+    background: var(--surface);
+    padding: 1.5rem;
+  }
+  .analysis-panel.wide { grid-column: span 2; }
+  .analysis-panel.full { grid-column: span 3; }
+
+  .species-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    margin-top: 1rem;
+  }
+  .species-card {
+    padding: 1rem; background: var(--surface2); border-radius: 4px;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+  }
+  .species-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+  .species-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .species-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.3rem; }
+  .species-temp { font-size: 0.65rem; color: var(--thermal-warm); }
+  .species-count { font-size: 0.6rem; color: var(--muted); margin-top: 0.3rem; }
+
+  /* Heatmap zones */
+  .zone-map {
+    margin-top: 1rem;
+    position: relative;
+  }
+  .zone-grid {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px;
+  }
+  .zone-cell {
+    aspect-ratio: 1; border-radius: 2px; cursor: pointer;
+    transition: transform 0.15s, filter 0.15s;
+    position: relative;
+  }
+  .zone-cell:hover { transform: scale(1.15); filter: brightness(1.5); z-index: 10; }
+  .zone-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.45rem; color: rgba(255,255,255,0.8);
+    font-family: 'Syne', sans-serif; font-weight: 700;
+  }
+
+  /* Trend chart */
+  .trend-bars {
+    display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-top: 1rem;
+  }
+  .trend-bar-wrap {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .trend-bar {
+    width: 100%; background: rgba(0,217,176,0.3);
+    border-radius: 2px 2px 0 0;
+    border-top: 2px solid var(--accent2);
+    transition: height 0.5s;
+  }
+  .trend-bar.warn {
+    background: rgba(245,166,35,0.3);
+    border-top-color: var(--thermal-warm);
+  }
+  .trend-bar.hot {
+    background: rgba(232,52,28,0.3);
+    border-top-color: var(--thermal-hot);
+  }
+  .trend-month { font-size: 0.52rem; color: var(--muted); }
+
+  /* ══════════════════════════════════
+     PAGE 5 — ABOUT / ARCHITECTURE
+  ══════════════════════════════════ */
+  .about-layout {
+    max-width: 900px; margin: 0 auto; padding: 3rem 2rem;
+  }
+  .about-hero {
+    text-align: center; margin-bottom: 4rem;
+  }
+  .about-hero h1 {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.1; margin-bottom: 1rem;
+  }
+  .about-hero h1 span { color: var(--accent); }
+  .about-hero p {
+    font-family: 'Crimson Pro', serif; font-size: 1.2rem;
+    color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.8;
+  }
+
+  .arch-flow {
+    display: flex; align-items: center; gap: 0; margin: 3rem 0;
+    overflow-x: auto; padding-bottom: 1rem;
+  }
+  .arch-node {
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 1.2rem 1rem;
+    text-align: center; min-width: 120px;
+    transition: all 0.2s;
+  }
+  .arch-node:hover { border-color: var(--accent2); transform: translateY(-4px); }
+  .arch-node.fusion { border-color: var(--accent); background: rgba(255,92,26,0.06); }
+  .arch-node-icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+  .arch-node-name {
+    font-family: 'Syne', sans-serif; font-weight: 600;
+    font-size: 0.72rem; margin-bottom: 0.3rem;
+  }
+  .arch-node-desc { font-size: 0.58rem; color: var(--muted); line-height: 1.5; }
+  .arch-arrow {
+    flex-shrink: 0; padding: 0 0.5rem;
+    color: var(--muted); font-size: 1.2rem;
+  }
+
+  .about-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0;
+  }
+  .about-card {
+    background: var(--surface2); border-radius: 6px;
+    padding: 1.5rem; border: 1px solid var(--border);
+  }
+  .about-card h3 {
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 0.85rem; margin-bottom: 1rem;
+    color: var(--accent2);
+  }
+  .about-card ul {
+    list-style: none; font-size: 0.72rem; line-height: 2;
+    color: var(--muted);
+  }
+  .about-card ul li::before { content: '→ '; color: var(--accent); }
+  .about-card ul li { color: var(--text); }
+
+  .app-tag {
+    display: inline-block;
+    padding: 0.35rem 0.8rem; border-radius: 20px;
+    font-size: 0.65rem; margin: 0.3rem; cursor: default;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .app-tag:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Decorative bg grid */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+  }
+  .page, nav { position: relative; z-index: 1; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+  /* Tag chip */
+  .chip {
+    display: inline-block; padding: 0.2rem 0.6rem;
+    border-radius: 2px; font-size: 0.58rem; margin-right: 0.4rem;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .chip-red { background: rgba(232,52,28,0.15); color: var(--thermal-hot); }
+  .chip-orange { background: rgba(245,166,35,0.15); color: var(--thermal-warm); }
+  .chip-green { background: rgba(0,217,176,0.12); color: var(--accent2); }
+  .chip-blue { background: rgba(26,74,138,0.3); color: var(--thermal-mid); }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav>
+  <div class="nav-logo">
+    🌡️ <span>Thermal</span>Vision
+  </div>
+  <div class="nav-links">
+    <button class="nav-btn active" onclick="showPage('dashboard', this)">Dashboard</button>
+    <button class="nav-btn" onclick="showPage('inference', this)">Inference</button>
+    <button class="nav-btn" onclick="showPage('wildlife', this)">Wildlife</button>
+    <button class="nav-btn" onclick="showPage('about', this)">Architecture</button>
+  </div>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    LIVE · Landsat-8
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════
+     PAGE 1 — DASHBOARD
+══════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+  <div class="dashboard-grid">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="panel">
+      <div class="sidebar-label">Surface Temperature · Now</div>
+
+      <div class="metric-card hot">
+        <div class="metric-label">Max Temp</div>
+        <div class="metric-value hot">318.4 K</div>
+        <div class="metric-sub">45.2°C — Urban Core</div>
+      </div>
+      <div class="metric-card warm">
+        <div class="metric-label">Avg Temp</div>
+        <div class="metric-value warm">302.1 K</div>
+        <div class="metric-sub">28.9°C — City-wide</div>
+      </div>
+      <div class="metric-card cool">
+        <div class="metric-label">Min Temp</div>
+        <div class="metric-value cool">289.3 K</div>
+        <div class="metric-sub">16.1°C — Riverside</div>
+      </div>
+      <div class="metric-card ok">
+        <div class="metric-label">Enhancement</div>
+        <div class="metric-value ok">4×</div>
+        <div class="metric-sub">SR ratio applied</div>
+      </div>
+
+      <div style="margin-top:1.5rem;">
+        <div class="sidebar-label">Model Metrics</div>
+        <div style="font-size:0.65rem;line-height:2.2;">
+          <div style="display:flex;justify-content:space-between;color:var(--muted);">
+            <span>PSNR</span><span style="color:var(--accent2)">34.7 dB</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;color:var(--muted);">
+            <span>SSIM</span><span style="color:var(--accent2)">0.921</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;color:var(--muted);">
+            <span>RMSE</span><span style="color:var(--thermal-warm)">1.83 K</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;color:var(--muted);">
+            <span>Scene</span><span style="color:var(--text)">Bengaluru</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;color:var(--muted);">
+            <span>Band</span><span style="color:var(--text)">B10 · TIR</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem;">
+        <div class="sidebar-label">Hourly Scans</div>
+        <div class="activity-bars" id="actBars"></div>
+      </div>
+    </div>
+
+    <!-- MAIN MAP AREA -->
+    <div class="map-panel" style="background:var(--surface);display:flex;flex-direction:column;">
+      <div class="map-header">
+        <div class="map-title">Thermal Heatmap — Super-Resolved Output</div>
+        <div class="map-controls">
+          <button class="ctrl-btn active">Thermal</button>
+          <button class="ctrl-btn" onclick="toggleMapMode(this)">Optical</button>
+          <button class="ctrl-btn" onclick="toggleMapMode(this)">Overlay</button>
+          <button class="ctrl-btn" onclick="toggleMapMode(this)">Diff</button>
+        </div>
+      </div>
+
+      <div class="thermal-map-container">
+        <div class="thermal-canvas">
+          <div class="thermal-grid" id="thermalGrid"></div>
+        </div>
+        <div class="map-legend">
+          <span>cold</span>
+          <div>
+            <div class="legend-bar"></div>
+            <div class="legend-labels"><span>289K</span><span>295K</span><span>302K</span><span>309K</span><span>318K</span></div>
+          </div>
+          <span>hot</span>
+        </div>
+      </div>
+
+      <!-- Comparison row -->
+      <div class="comparison-row">
+        <div class="compare-panel">
+          <div class="compare-label">Low-Res Input (30m)</div>
+          <div class="mini-grid" id="miniLow"></div>
+        </div>
+        <div class="compare-panel">
+          <div class="compare-label">Super-Resolved (7.5m)</div>
+          <div class="mini-grid" id="miniHigh"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="panel">
+      <div class="sidebar-label">Alerts & Events</div>
+
+      <div class="alert-item">
+        <div class="alert-type">⚠ Heat Island</div>
+        <div class="alert-msg">Zone 4B exceeded 315K threshold. Urban core shows concentrated radiant heat.</div>
+        <div class="alert-time">12 min ago</div>
+      </div>
+      <div class="alert-item warn">
+        <div class="alert-type warn">⚡ Anomaly</div>
+        <div class="alert-msg">Unusual thermal patch detected near coords 13.02°N, 77.58°E — possible industrial source.</div>
+        <div class="alert-time">38 min ago</div>
+      </div>
+      <div class="alert-item info">
+        <div class="alert-type info">✓ Wildlife</div>
+        <div class="alert-msg">Thermal signature consistent with large mammal cluster near forest boundary.</div>
+        <div class="alert-time">1h 14min ago</div>
+      </div>
+      <div class="alert-item warn">
+        <div class="alert-type warn">☁ Cloud Mask</div>
+        <div class="alert-msg">8.3% of scene contaminated. Patches auto-filtered before inference.</div>
+        <div class="alert-time">2h ago</div>
+      </div>
+
+      <div style="margin-top:1.5rem;">
+        <div class="sidebar-label">Data Pipeline</div>
+        <div style="font-size:0.65rem;">
+          <div class="progress-section">
+            <div class="progress-label"><span>Ingestion</span><span style="color:var(--accent2)">Done</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="progress-section" style="margin-top:0.75rem;">
+            <div class="progress-label"><span>Preprocessing</span><span style="color:var(--accent2)">Done</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="progress-section" style="margin-top:0.75rem;">
+            <div class="progress-label"><span>SR Inference</span><span style="color:var(--accent2)">Done</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="progress-section" style="margin-top:0.75rem;">
+            <div class="progress-label"><span>Analysis</span><span style="color:var(--thermal-warm)">87%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:87%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 2 — INFERENCE
+══════════════════════════════════ -->
+<div id="page-inference" class="page">
+  <div class="inference-layout">
+    <!-- Input Panel -->
+    <div class="inf-panel">
+      <div class="inf-title">Run Inference</div>
+      <div class="inf-subtitle">Select a random test sample from the dataset or upload your own images to run the model.</div>
+
+      <div class="upload-zone" style="display:flex; gap:10px; padding:1.5rem;">
+        
+        <!-- Option 1: Dataset Random -->
+        <div onclick="runInferenceRandom()" style="flex:1; border:1px dashed rgba(255,255,255,0.2); padding:1rem; border-radius:4px; cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
+            <span class="upload-icon">🎲</span>
+            <div class="upload-text"><strong>Random Test Sample</strong><br>Load from Test Set</div>
+        </div>
+
+        <!-- Option 2: Upload -->
+        <div style="flex:1; border:1px dashed rgba(255,255,255,0.2); padding:1rem; border-radius:4px; position:relative;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
+            <span class="upload-icon">📂</span>
+            <div class="upload-text"><strong>Upload Custom</strong><br>
+                <input type="file" id="uploadOptical" accept="image/*" style="font-size:0.6rem; width:100%; margin-top:5px;">
+                <div style="font-size:0.6rem; color:var(--muted); margin-top:2px;">Optical (High Res)</div>
+                
+                <input type="file" id="uploadThermal" accept="image/*" style="font-size:0.6rem; width:100%; margin-top:5px;">
+                <div style="font-size:0.6rem; color:var(--muted); margin-top:2px;">Thermal (Low Res)</div>
+                
+                <button onclick="runInferenceUpload()" style="width:100%; margin-top:8px; background:var(--surface); border:1px solid var(--accent2); color:var(--accent2); padding:4px; font-size:0.65rem; cursor:pointer;">Run Custom</button>
+            </div>
+        </div>
+
+      </div>
+
+      <div class="file-info" id="fileInfo" style="display:none;">
+        <div class="file-info-row"><span>Filename</span><span>LC08_L2SP_144051.tif</span></div>
+        <div class="file-info-row"><span>Scene Date</span><span>2024-11-22</span></div>
+        <div class="file-info-row"><span>Patch Size</span><span>256 × 256 px</span></div>
+        <div class="file-info-row"><span>Cloud Cover</span><span>3.1%</span></div>
+        <div class="file-info-row"><span>Temp Range</span><span>291.4 — 317.8 K</span></div>
+      </div>
+
+      <button class="run-btn" onclick="runInference()">▶ Run Super-Resolution</button>
+    </div>
+
+    <!-- Output Panel -->
+    <div class="inf-panel">
+      <div class="output-tabs">
+        <button class="tab-btn active" onclick="switchTab(this)">Visual Output</button>
+        <button class="tab-btn" onclick="switchTab(this)">Diff View</button>
+      </div>
+
+      <div class="output-compare">
+        <div class="img-frame">
+          <div class="img-label">Input · Low-Res (30m)</div>
+          <div style="height:180px; background:var(--surface2); display:flex; align-items:center; justify-content:center;">
+            <img id="imgInput" style="max-width:100%; max-height:100%; display:none;">
+            <div id="imgInputPlaceholder" style="color:var(--muted)">Waiting...</div>
+          </div>
+        </div>
+        <div class="img-frame">
+          <div class="img-label">Output · Super-Res (7.5m)</div>
+          <div style="height:180px; background:var(--surface2); display:flex; align-items:center; justify-content:center;">
+            <img id="imgOutput" style="max-width:100%; max-height:100%; display:none;">
+            <div id="imgOutputPlaceholder" style="color:var(--muted)">Waiting...</div>
+          </div>
+        </div>
+        <div class="img-frame">
+          <div class="img-label">GeoTIFF · Thermal Matrix (K)</div>
+          <div style="height:180px; background:#000; position:relative; display:flex; align-items:center; justify-content:center;">
+            <canvas id="thermalMatrixCanvas" style="width:100%; height:100%; image-rendering:pixelated;"></canvas>
+            <div id="matrixPlaceholder" style="position:absolute; color:var(--muted); font-size:0.65rem;">Waiting...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-box-val" id="metricPSNR">--</div>
+          <div class="metric-box-name">PSNR (dB)</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-box-val" id="metricSSIM">--</div>
+          <div class="metric-box-name">SSIM</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-box-val" style="color:var(--thermal-warm)">1.83K</div>
+          <div class="metric-box-name">RMSE</div>
+        </div>
+      </div>
+
+      <div class="progress-section" style="margin-top:1.5rem;" id="inferenceProgress" style="display:none;">
+        <div class="progress-label"><span>Thermal Encoder</span><span id="stepLabel" style="color:var(--accent2)">Complete</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="inferFill" style="width:100%"></div></div>
+      </div>
+
+    </div>
+
+    <!-- Location Map Panel -->
+    <div class="inf-panel">
+      <div class="inf-title">📍 Location Map</div>
+      <div class="inf-subtitle">Geographic region of the input Landsat scene</div>
+      <div id="mapContainer" style="height:350px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+        <div id="mapPlaceholder" style="color:var(--muted); font-size:0.7rem; text-align:center;">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">🗺️</div>
+          Run inference to view location
+        </div>
+      </div>
+      <div id="coordsInfo" style="margin-top:0.75rem; display:none;">
+        <div style="display:flex; gap:1rem; font-size:0.65rem;">
+          <div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; flex:1;">
+            <span style="color:var(--muted);">Latitude</span>
+            <span id="dispLat" style="color:var(--accent2); float:right;">--</span>
+          </div>
+          <div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; flex:1;">
+            <span style="color:var(--muted);">Longitude</span>
+            <span id="dispLon" style="color:var(--accent2); float:right;">--</span>
+          </div>
+          <div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; flex:1;">
+            <span style="color:var(--muted);">WRS-2</span>
+            <span id="dispWRS" style="color:var(--accent2); float:right;">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wildlife & Climate Risk Panel -->
+    <div class="inf-panel" style="overflow-y:auto; max-height:500px;">
+      <div class="inf-title">🦁 Wildlife Feasibility & Climate Risk</div>
+      <div class="inf-subtitle">Species data via GBIF API · Climate indicators via Copernicus CDS</div>
+
+      <div style="margin-top:1.5rem;">
+        <div class="sidebar-label">Species Occurrences — GBIF</div>
+        <div id="speciesList" style="color:var(--muted); font-size:0.7rem;">
+          <div style="text-align:center; padding:1rem;">
+            <div style="font-size:1.5rem; margin-bottom:0.5rem;">🔍</div>
+            Run inference to load species data
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem;">
+        <div class="sidebar-label">Climate-Biodiversity Risk — Copernicus CDS</div>
+        <div id="climateData" style="color:var(--muted); font-size:0.7rem;">
+          <div style="text-align:center; padding:1rem;">
+            <div style="font-size:1.5rem; margin-bottom:0.5rem;">🌍</div>
+            Run inference to load climate analysis
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 4 — WILDLIFE
+══════════════════════════════════ -->
+<div id="page-wildlife" class="page">
+  <div style="padding:2rem 2rem 0; background:var(--surface); border-bottom:1px solid var(--border);">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;margin-bottom:0.5rem;">Wildlife & Heat Island Analysis</div>
+    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:1rem;">Thermal signatures cross-referenced with habitat data · Bengaluru Metro Region</div>
+    <div>
+      <span class="chip chip-red">3 Heat Alerts</span>
+      <span class="chip chip-orange">2 Anomalies</span>
+      <span class="chip chip-green">5 Wildlife Detections</span>
+      <span class="chip chip-blue">Cloud-free: 91.7%</span>
+    </div>
+    <div style="height:1px;margin-top:1rem;"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:1px;background:var(--border);">
+
+    <!-- Zone heatmap -->
+    <div style="background:var(--surface);padding:1.5rem;grid-column:span 2;">
+      <div class="sidebar-label">Thermal Zone Map — 12×8 Grid</div>
+      <div class="zone-map">
+        <div class="zone-grid" id="zoneGrid" style="grid-template-columns:repeat(12,1fr);"></div>
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:1.5rem;font-size:0.6rem;color:var(--muted);">
+        <div>🔴 &gt;312K — Critical</div>
+        <div>🟠 305–312K — High</div>
+        <div>🟡 298–305K — Moderate</div>
+        <div>🟢 &lt;298K — Normal</div>
+        <div>⬛ Wildlife sig.</div>
+      </div>
+    </div>
+
+    <!-- Species -->
+    <div style="background:var(--surface);padding:1.5rem;">
+      <div class="sidebar-label">Detected Species</div>
+      <div class="species-grid">
+        <div class="species-card">
+          <div class="species-icon">🐆</div>
+          <div class="species-name">Leopard</div>
+          <div class="species-temp">Body: 38.5°C</div>
+          <div class="species-count">2 signatures · NE zone</div>
+        </div>
+        <div class="species-card">
+          <div class="species-icon">🦅</div>
+          <div class="species-name">Raptor</div>
+          <div class="species-temp">Body: 41.2°C</div>
+          <div class="species-count">3 signatures · open</div>
+        </div>
+        <div class="species-card">
+          <div class="species-icon">🐘</div>
+          <div class="species-name">Elephant</div>
+          <div class="species-temp">Body: 36.1°C</div>
+          <div class="species-count">Herd · SW corridor</div>
+        </div>
+        <div class="species-card">
+          <div class="species-icon">🦌</div>
+          <div class="species-name">Deer</div>
+          <div class="species-temp">Body: 38.8°C</div>
+          <div class="species-count">Group · forest edge</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trend -->
+    <div style="background:var(--surface);padding:1.5rem;">
+      <div class="sidebar-label">Monthly Avg Temp (K)</div>
+      <div class="trend-bars" id="trendBars"></div>
+      <div style="display:flex;gap:4px;margin-top:4px;" id="trendLabels"></div>
+    </div>
+
+    <!-- UHI analysis -->
+    <div style="background:var(--surface);padding:1.5rem;grid-column:span 2;">
+      <div class="sidebar-label">Urban Heat Island — Zone Analysis</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:0.5rem;">
+        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--thermal-hot);">
+          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">CBD Core</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--thermal-hot)">+8.4K</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">above rural baseline</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--thermal-warm);">
+          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">Industrial</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--thermal-warm)">+5.9K</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">above rural baseline</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--thermal-mid);">
+          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">Residential</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--thermal-mid)">+3.2K</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">above rural baseline</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--accent2);">
+          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">Green Zones</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--accent2)">−1.1K</div>
+          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">below rural baseline</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     PAGE 5 — ARCHITECTURE
+══════════════════════════════════ -->
+<div id="page-about" class="page">
+  <div class="about-layout">
+    <div class="about-hero">
+      <h1>Smart <span>Thermal</span><br>Mapping</h1>
+      <p>A dual-encoder, gated-fusion deep learning framework for thermal super-resolution using optical imagery as structural guidance.</p>
+    </div>
+
+    <!-- Architecture flow -->
+    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);text-align:center;margin-bottom:1.5rem;">Model Architecture Pipeline</div>
+    <div class="arch-flow">
+      <div class="arch-node">
+        <div class="arch-node-icon">🌡️</div>
+        <div class="arch-node-name">Thermal Input</div>
+        <div class="arch-node-desc">Landsat-8 B10<br>Upsampled LR</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-node-icon">🔷</div>
+        <div class="arch-node-name">Thermal Encoder</div>
+        <div class="arch-node-desc">Temperature-specific<br>feature extraction</div>
+      </div>
+      <div class="arch-arrow">↘</div>
+      <div class="arch-node fusion">
+        <div class="arch-node-icon">⚡</div>
+        <div class="arch-node-name">Gated Fusion</div>
+        <div class="arch-node-desc">Regulates optical<br>injection via gate</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-node-icon">🔧</div>
+        <div class="arch-node-name">Decoder</div>
+        <div class="arch-node-desc">Reconstruction &<br>super-resolution</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <div class="arch-node-icon">🗺️</div>
+        <div class="arch-node-name">SR Output</div>
+        <div class="arch-node-desc">High-res GeoTIFF<br>+ Kelvin map</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:0.5rem;gap:2rem;">
+      <div class="arch-node" style="min-width:100px;text-align:center;">
+        <div class="arch-node-icon">🛰️</div>
+        <div class="arch-node-name">Optical Input</div>
+        <div class="arch-node-desc">B2/B3/B4 RGB<br>High-res spatial</div>
+      </div>
+      <div class="arch-arrow" style="padding-top:1rem;">↗</div>
+      <div class="arch-node" style="min-width:100px;">
+        <div class="arch-node-icon">🔶</div>
+        <div class="arch-node-name">Optical Encoder</div>
+        <div class="arch-node-desc">High-frequency<br>spatial details</div>
+      </div>
+    </div>
+
+    <div class="about-grid" style="margin-top:3rem;">
+      <div class="about-card">
+        <h3>📊 Dataset · Landsat 8</h3>
+        <ul>
+          <li>Optical Bands: B2, B3, B4 (RGB)</li>
+          <li>Thermal Band: B10 (TIR)</li>
+          <li>DN → Brightness Temperature (K)</li>
+          <li>Cloud mask filtering (&lt;10%)</li>
+          <li>Patch size: 256×256 pixels</li>
+        </ul>
+      </div>
+      <div class="about-card">
+        <h3>⚡ Loss Functions</h3>
+        <ul>
+          <li>L1 Reconstruction Loss</li>
+          <li>SSIM Structural Loss</li>
+          <li>Thermal Energy Consistency</li>
+          <li>Prevents texture hallucination</li>
+          <li>Physics-aware constraints</li>
+        </ul>
+      </div>
+      <div class="about-card">
+        <h3>📈 Evaluation Metrics</h3>
+        <ul>
+          <li>PSNR: 34.7 dB</li>
+          <li>SSIM: 0.921</li>
+          <li>RMSE: 1.83 K</li>
+          <li>Scale: 4× enhancement ratio</li>
+          <li>30m → 7.5m effective resolution</li>
+        </ul>
+      </div>
+      <div class="about-card">
+        <h3>🌍 Applications</h3>
+        <ul>
+          <li>Urban Heat Island Analysis</li>
+          <li>Wildfire Monitoring</li>
+          <li>Climate Risk Mapping</li>
+          <li>Wildlife Thermal Detection</li>
+          <li>Precision Agriculture</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border);">
+      <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted);margin-bottom:1rem;">Tech Stack</div>
+      <div>
+        <span class="app-tag">Python 3.9+</span>
+        <span class="app-tag">PyTorch</span>
+        <span class="app-tag">rasterio</span>
+        <span class="app-tag">NumPy</span>
+        <span class="app-tag">Matplotlib</span>
+        <span class="app-tag">Landsat 8</span>
+        <span class="app-tag">GeoTIFF</span>
+        <span class="app-tag">SSIM</span>
+        <span class="app-tag">Gated Fusion</span>
+      </div>
+      <div style="margin-top:2rem;font-size:0.65rem;color:var(--muted);font-family:'Crimson Pro',serif;font-style:italic;">
+        VaibhaviCNBhat · Smart-Thermal-Mapping-For-Urban-Heat-Wildlife-Monitoring
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══ PAGE NAVIGATION ═══
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══ THERMAL COLOR ═══
+function tempToColor(t) {
+  // t: 0–1
+  const stops = [
+    [0,    [10, 22, 40]],
+    [0.2,  [26, 74, 138]],
+    [0.45, [46, 163, 196]],
+    [0.65, [245, 166, 35]],
+    [0.85, [232, 52, 28]],
+    [1,    [255, 240, 224]]
+  ];
+  for (let i = 1; i < stops.length; i++) {
+    if (t <= stops[i][0]) {
+      const lo = stops[i-1], hi = stops[i];
+      const f = (t - lo[0]) / (hi[0] - lo[0]);
+      const r = Math.round(lo[1][0] + f*(hi[1][0]-lo[1][0]));
+      const g = Math.round(lo[1][1] + f*(hi[1][1]-lo[1][1]));
+      const b = Math.round(lo[1][2] + f*(hi[1][2]-lo[1][2]));
+      return `rgb(${r},${g},${b})`;
+    }
+  }
+  return 'rgb(255,240,224)';
+}
+
+// ═══ GENERATE NOISE FIELD ═══
+function generateThermalNoise(w, h, scale) {
+  const arr = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      // Simplex-like approach using sin/cos combos
+      let v = 0;
+      v += Math.sin(x * 0.4 + y * 0.3) * 0.3;
+      v += Math.sin(x * 0.1 - y * 0.15) * 0.4;
+      v += Math.cos(x * 0.25 + y * 0.2) * 0.2;
+      v += Math.random() * 0.15;
+      // Urban hotspot
+      const dx = x - w*0.4, dy = y - h*0.45;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      v += Math.exp(-d*d/(w*h*0.05)) * 0.8;
+      // Secondary hotspot
+      const dx2 = x - w*0.7, dy2 = y - h*0.3;
+      const d2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+      v += Math.exp(-d2*d2/(w*h*0.03)) * 0.5;
+      // Cool river
+      v -= Math.exp(-Math.pow(y - h*0.7, 2)/(h*h*0.02)) * 0.3;
+      arr.push(v);
+    }
+  }
+  // Normalize
+  const mn = Math.min(...arr), mx = Math.max(...arr);
+  return arr.map(v => (v - mn) / (mx - mn));
+}
+
+// ═══ RENDER MAIN THERMAL GRID ═══
+function renderThermalGrid() {
+  const grid = document.getElementById('thermalGrid');
+  const W = 20, H = 14;
+  const vals = generateThermalNoise(W, H);
+  grid.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
+  for (let i = 0; i < W * H; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'thermal-cell';
+    cell.style.background = tempToColor(vals[i]);
+    cell.style.width = '100%';
+    cell.title = `${(289 + vals[i]*29).toFixed(1)} K`;
+    grid.appendChild(cell);
+  }
+}
+
+function renderMiniGrid(id, W, H, blur) {
+  const grid = document.getElementById(id);
+  if (!grid) return;
+  const vals = generateThermalNoise(W, H);
+  grid.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
+  for (let i = 0; i < W * H; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'mini-cell';
+    let col = tempToColor(blur ? Math.round(vals[i]*4)/4 : vals[i]);
+    cell.style.background = col;
+    if (blur) cell.style.filter = 'blur(1.5px)';
+    grid.appendChild(cell);
+  }
+}
+
+// ═══ ZONE GRID ═══
+function renderZoneGrid() {
+  const grid = document.getElementById('zoneGrid');
+  if (!grid) return;
+  const W = 12, H = 8;
+  const vals = generateThermalNoise(W, H);
+  const wildlife = [5, 14, 27, 42, 61];
+  grid.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
+  for (let i = 0; i < W * H; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'zone-cell';
+    if (wildlife.includes(i)) {
+      cell.style.background = '#1a1a3a';
+      cell.style.border = '1px solid #6060ff';
+      const ov = document.createElement('div');
+      ov.className = 'zone-overlay';
+      ov.textContent = '🐾';
+      cell.appendChild(ov);
+    } else {
+      cell.style.background = tempToColor(vals[i]);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// ═══ ACTIVITY BARS ═══
+function renderActivityBars() {
+  const bars = document.getElementById('actBars');
+  if (!bars) return;
+  const data = [0.3, 0.5, 0.4, 0.8, 1.0, 0.7, 0.9, 0.6, 0.85, 0.5, 0.4, 0.7];
+  data.forEach(v => {
+    const b = document.createElement('div');
+    b.className = 'act-bar';
+    b.style.height = (v * 100) + '%';
+    b.style.background = `rgba(0,217,176,${0.2 + v*0.5})`;
+    b.style.borderTop = `2px solid rgba(0,217,176,${0.4 + v*0.5})`;
+    bars.appendChild(b);
+  });
+}
+
+// ═══ TREND BARS ═══
+function renderTrendBars() {
+  const bars = document.getElementById('trendBars');
+  const labels = document.getElementById('trendLabels');
+  if (!bars || !labels) return;
+  const data = [
+    {m:'J', v:295, c:'ok'}, {m:'F', v:297, c:'ok'}, {m:'M', v:301, c:'ok'},
+    {m:'A', v:305, c:'warn'}, {m:'M', v:308, c:'warn'}, {m:'J', v:312, c:'hot'},
+    {m:'J', v:315, c:'hot'}, {m:'A', v:314, c:'hot'}, {m:'S', v:309, c:'warn'},
+    {m:'O', v:303, c:'ok'}, {m:'N', v:298, c:'ok'}, {m:'D', v:294, c:'ok'}
+  ];
+  const mn = 290, mx = 320;
+  data.forEach(d => {
+    const w = document.createElement('div');
+    w.className = 'trend-bar-wrap';
+    const b = document.createElement('div');
+    b.className = 'trend-bar ' + d.c;
+    b.style.height = ((d.v - mn)/(mx - mn) * 70 + 5) + 'px';
+    w.appendChild(b);
+    bars.appendChild(w);
+
+    const l = document.createElement('div');
+    l.className = 'trend-month';
+    l.textContent = d.m;
+    l.style.flex = '1';
+    l.style.textAlign = 'center';
+    labels.appendChild(l);
+  });
+}
+
+// ═══ LOSS CHART SVG ═══
+function renderChart(svgId, data1, data2, c1, c2) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  const W = 600, H = 160, pad = 20;
+  const n = data1.length;
+  const all = [...data1, ...data2];
+  const mn = Math.min(...all)*0.95, mx = Math.max(...all)*1.05;
+  const sx = i => pad + (i/(n-1)) * (W - 2*pad);
+  const sy = v => H - pad - ((v - mn)/(mx - mn)) * (H - 2*pad);
+
+  // Grid lines
+  for (let i = 0; i <= 4; i++) {
+    const y = pad + i * (H - 2*pad) / 4;
+    const line = `<line x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`;
+    svg.innerHTML += line;
+  }
+
+  // Area fills
+  const area1 = data1.map((v,i) => `${sx(i)},${sy(v)}`).join(' ');
+  const area2 = data2.map((v,i) => `${sx(i)},${sy(v)}`).join(' ');
+  const bottom = `${sx(n-1)},${H-pad} ${sx(0)},${H-pad}`;
+
+  svg.innerHTML += `<polygon points="${area1} ${bottom}" fill="${c1}" fill-opacity="0.12"/>`;
+  svg.innerHTML += `<polygon points="${area2} ${bottom}" fill="${c2}" fill-opacity="0.12"/>`;
+
+  // Lines
+  const p1 = data1.map((v,i) => `${i===0?'M':'L'}${sx(i)},${sy(v)}`).join(' ');
+  const p2 = data2.map((v,i) => `${i===0?'M':'L'}${sx(i)},${sy(v)}`).join(' ');
+  svg.innerHTML += `<path d="${p1}" fill="none" stroke="${c1}" stroke-width="2"/>`;
+  svg.innerHTML += `<path d="${p2}" fill="none" stroke="${c2}" stroke-width="2"/>`;
+
+  // Last point dot
+  const lx = sx(n-1), ly1 = sy(data1[n-1]), ly2 = sy(data2[n-1]);
+  svg.innerHTML += `<circle cx="${lx}" cy="${ly1}" r="4" fill="${c1}"/>`;
+  svg.innerHTML += `<circle cx="${lx}" cy="${ly2}" r="4" fill="${c2}"/>`;
+}
+
+function makeLossCurve(n, start, end, noise) {
+  return Array.from({length: n}, (_, i) => {
+    const t = i / (n-1);
+    return start * Math.exp(-t * 3) + end + (Math.random()-0.5)*noise;
+  });
+}
+
+// ═══ TOGGLE HELPERS ═══
+function toggleSwitch(el) {
+  el.classList.toggle('on');
+}
+function toggleMapMode(btn) {
+  document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function selectOpt(el) {
+  const group = el.parentNode;
+  group.querySelectorAll('.radio-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+}
+function switchTab(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+let uploadDone = false;
+function simulateUpload() {
+  if (uploadDone) return;
+  uploadDone = true;
+  document.querySelector('.upload-zone').style.borderColor = 'var(--accent2)';
+  document.querySelector('.upload-icon').textContent = '✅';
+  document.querySelector('.upload-text strong').textContent = 'File Loaded';
+  document.getElementById('fileInfo').style.display = 'block';
+}
+
+async function updateUIWithData(data) {
+        // Update Images
+        const imgInput = document.getElementById('imgInput');
+        const imgInputPlaceholder = document.getElementById('imgInputPlaceholder');
+        const imgOutput = document.getElementById('imgOutput');
+        const imgOutputPlaceholder = document.getElementById('imgOutputPlaceholder');
+
+        if(imgInput && data.input_lr) {
+            imgInput.src = data.input_lr;
+            imgInput.style.display = 'block';
+            if(imgInputPlaceholder) imgInputPlaceholder.style.display = 'none';
+        }
+
+        if(imgOutput && data.prediction) {
+            imgOutput.src = data.prediction;
+            imgOutput.style.display = 'block';
+            if(imgOutputPlaceholder) imgOutputPlaceholder.style.display = 'none';
+        }
+        
+        // Update Metrics
+        const psnrEl = document.getElementById('metricPSNR');
+        if(psnrEl && data.metrics) psnrEl.innerText = data.metrics.psnr > 0 ? data.metrics.psnr.toFixed(2) : "N/A";
+        
+        const ssimEl = document.getElementById('metricSSIM');
+        if(ssimEl && data.metrics) ssimEl.innerText = data.metrics.ssim > 0 ? data.metrics.ssim.toFixed(3) : "N/A";
+
+        // Render thermal matrix
+        if (data.thermal_matrix) {
+            const ph = document.getElementById('matrixPlaceholder');
+            if (ph) ph.style.display = 'none';
+            renderThermalMatrix(data.thermal_matrix, data.temp_range);
+        }
+
+        // Update map and wildlife panels
+        if (data.coordinates) {
+            initMap(data.coordinates.lat, data.coordinates.lon);
+
+            const coordsInfo = document.getElementById('coordsInfo');
+            if (coordsInfo) {
+                coordsInfo.style.display = 'block';
+                document.getElementById('dispLat').textContent = data.coordinates.lat.toFixed(4) + '°';
+                document.getElementById('dispLon').textContent = data.coordinates.lon.toFixed(4) + '°';
+                document.getElementById('dispWRS').textContent = 'P' + data.coordinates.path + '/R' + data.coordinates.row;
+            }
+
+            fetchGBIFSpecies(data.coordinates.lat, data.coordinates.lon);
+
+            const meanTemp = data.temp_range ? (data.temp_range.min + data.temp_range.max) / 2 : 300;
+            fetchClimateRisk(data.coordinates.lat, data.coordinates.lon, meanTemp);
+        }
+}
+
+async function runInferenceRandom() {
+    const btn = document.querySelector('.run-btn'); // Main run button likely unused now, but keeping ref clean
+    const fill = document.getElementById('inferFill');
+    if(fill) fill.style.width = '30%';
+    
+    try {
+        const response = await fetch('/api/random-sample'); 
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        if(fill) fill.style.width = '100%';
+        await updateUIWithData(data);
+    } catch (error) {
+        console.error('Error:', error);
+        alert("Failed to load random sample.");
+    }
+}
+
+async function runInferenceUpload() {
+    const optInput = document.getElementById('uploadOptical');
+    const thermInput = document.getElementById('uploadThermal');
+    
+    if(!optInput.files[0] || !thermInput.files[0]) {
+        alert("Please select both Optical and Thermal files.");
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file_optical', optInput.files[0]);
+    formData.append('file_thermal_lr', thermInput.files[0]);
+    
+    const fill = document.getElementById('inferFill');
+    if(fill) fill.style.width = '30%';
+
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        
+        if(fill) fill.style.width = '100%';
+        await updateUIWithData(data);
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert("Inference failed.");
+    }
+}
+
+/* Deprecated/Wrapped functions */
+function simulateUpload() { runInferenceRandom(); }
+function runInference() { runInferenceRandom(); }
+
+// ═══ THERMAL MATRIX VISUALIZATION ═══
+function renderThermalMatrix(matrix, tempRange) {
+  const canvas = document.getElementById('thermalMatrixCanvas');
+  if (!canvas || !matrix) return;
+  const ctx = canvas.getContext('2d');
+  const gridSize = matrix.length;
+  const cellSize = 20;
+
+  canvas.width = gridSize * cellSize;
+  canvas.height = gridSize * cellSize;
+
+  const allVals = matrix.flat();
+  const minT = tempRange?.min ?? Math.min(...allVals);
+  const maxT = tempRange?.max ?? Math.max(...allVals);
+  const range = maxT - minT || 1;
+
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
+      const val = matrix[i][j];
+      const t = Math.max(0, Math.min(1, (val - minT) / range));
+      ctx.fillStyle = tempToColor(t);
+      ctx.fillRect(j * cellSize, i * cellSize, cellSize - 1, cellSize - 1);
+    }
+  }
+
+  canvas._thermalMatrix = matrix;
+  canvas._cellSize = cellSize;
+}
+
+// ═══ LOCATION MAP (Leaflet + OpenStreetMap) ═══
+let leafletMap = null;
+let leafletMarker = null;
+let leafletRect = null;
+
+function initMap(lat, lon) {
+  const placeholder = document.getElementById('mapPlaceholder');
+  if (placeholder) placeholder.style.display = 'none';
+
+  if (!leafletMap) {
+    leafletMap = L.map('mapContainer').setView([lat, lon], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(leafletMap);
+    leafletMarker = L.marker([lat, lon]).addTo(leafletMap);
+  } else {
+    leafletMap.setView([lat, lon], 7);
+    leafletMarker.setLatLng([lat, lon]);
+    if (leafletRect) leafletMap.removeLayer(leafletRect);
+  }
+
+  leafletMarker.bindPopup(
+    '<b>Landsat Scene Center</b><br>Lat: ' + lat.toFixed(4) + '°, Lon: ' + lon.toFixed(4) + '°'
+  ).openPopup();
+
+  const offset = 0.9;
+  leafletRect = L.rectangle(
+    [[lat - offset, lon - offset], [lat + offset, lon + offset]],
+    {color: '#ff5c1a', weight: 2, fillOpacity: 0.08}
+  ).addTo(leafletMap);
+
+  setTimeout(function() { leafletMap.invalidateSize(); }, 200);
+}
+
+// ═══ GBIF SPECIES API ═══
+async function fetchGBIFSpecies(lat, lon) {
+  const panel = document.getElementById('speciesList');
+  panel.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--accent2);">Loading species data from GBIF...</div>';
+
+  try {
+    const response = await fetch('/api/gbif-species?lat=' + lat + '&lon=' + lon);
+    const data = await response.json();
+
+    if (data.species && data.species.length > 0) {
+      let html = '<div style="font-size:0.58rem; color:var(--muted); margin-bottom:0.75rem;">' + data.total_records.toLocaleString() + ' total occurrence records in region</div>';
+      html += '<div style="display:grid; gap:0.4rem; max-height:200px; overflow-y:auto;">';
+
+      const icons = {'Animalia':'🐾','Plantae':'🌿','Fungi':'🍄','Aves':'🐦','Mammalia':'🦊'};
+
+      for (const sp of data.species) {
+        const riskColor = (sp.iucn === 'VULNERABLE' || sp.iucn === 'VU') ? 'var(--thermal-warm)' :
+                          (sp.iucn === 'ENDANGERED' || sp.iucn === 'EN') ? 'var(--thermal-hot)' :
+                          (sp.iucn === 'CRITICALLY_ENDANGERED' || sp.iucn === 'CR') ? '#ff0040' : 'var(--accent2)';
+        const icon = icons[sp.kingdom] || icons[sp.class_name] || '🔬';
+
+        html += '<div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; border-left:2px solid ' + riskColor + '; font-size:0.62rem;">';
+        html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
+        html += '<span style="color:var(--text);"><span style="margin-right:4px;">' + icon + '</span><em>' + sp.species + '</em></span>';
+        html += '<span style="color:var(--muted); font-size:0.55rem;">' + sp.count + ' rec.</span>';
+        html += '</div>';
+        html += '<div style="color:var(--muted); font-size:0.5rem; margin-top:0.15rem;">' + (sp.order || sp.class_name || sp.kingdom) + (sp.iucn ? ' · <span style="color:' + riskColor + ';">' + sp.iucn + '</span>' : '') + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+      panel.innerHTML = html;
+    } else {
+      panel.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--muted);">No species records found in this region</div>';
+    }
+  } catch (e) {
+    panel.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--thermal-hot);">Failed to load species data</div>';
+  }
+}
+
+// ═══ CLIMATE RISK (Copernicus CDS) ═══
+async function fetchClimateRisk(lat, lon, meanTempK) {
+  const panel = document.getElementById('climateData');
+  panel.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--accent2);">Analyzing climate-biodiversity risk...</div>';
+
+  try {
+    const response = await fetch('/api/climate-risk?lat=' + lat + '&lon=' + lon + '&mean_temp_k=' + meanTempK);
+    const data = await response.json();
+
+    const stressColor = data.heat_stress_index === 'Critical' ? 'var(--thermal-hot)' :
+                        data.heat_stress_index === 'High' ? 'var(--thermal-warm)' :
+                        data.heat_stress_index === 'Moderate' ? 'var(--warn)' : 'var(--accent2)';
+
+    let html = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-top:0.5rem;">';
+    html += '<div style="background:var(--surface2); padding:0.6rem; border-radius:4px; border-left:2px solid ' + stressColor + ';">';
+    html += '<div style="font-size:0.5rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Heat Stress</div>';
+    html += '<div style="font-family:Syne,sans-serif; font-weight:700; color:' + stressColor + '; font-size:0.95rem;">' + data.heat_stress_index + '</div></div>';
+
+    html += '<div style="background:var(--surface2); padding:0.6rem; border-radius:4px; border-left:2px solid var(--accent2);">';
+    html += '<div style="font-size:0.5rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Habitat Suitability</div>';
+    html += '<div style="font-family:Syne,sans-serif; font-weight:700; color:var(--accent2); font-size:0.95rem;">' + data.habitat_suitability + '%</div></div>';
+
+    html += '<div style="background:var(--surface2); padding:0.6rem; border-radius:4px; border-left:2px solid var(--thermal-warm);">';
+    html += '<div style="font-size:0.5rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">UHI Intensity</div>';
+    html += '<div style="font-family:Syne,sans-serif; font-weight:700; color:var(--thermal-warm); font-size:0.95rem;">+' + data.uhi_intensity_k + 'K</div></div>';
+
+    html += '<div style="background:var(--surface2); padding:0.6rem; border-radius:4px; border-left:2px solid var(--thermal-mid);">';
+    html += '<div style="font-size:0.5rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Mean Temp</div>';
+    html += '<div style="font-family:Syne,sans-serif; font-weight:700; color:var(--thermal-mid); font-size:0.95rem;">' + data.mean_temperature_c.toFixed(1) + '°C</div></div>';
+    html += '</div>';
+
+    html += '<div style="margin-top:0.6rem; display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.4rem;">';
+    html += '<div style="background:var(--surface2); padding:0.4rem; border-radius:3px; font-size:0.55rem; text-align:center;">';
+    html += '<div style="color:var(--muted); text-transform:uppercase; font-size:0.45rem;">Vegetation</div><div style="color:var(--text); margin-top:0.15rem;">' + data.vegetation_stress + '</div></div>';
+    html += '<div style="background:var(--surface2); padding:0.4rem; border-radius:3px; font-size:0.55rem; text-align:center;">';
+    html += '<div style="color:var(--muted); text-transform:uppercase; font-size:0.45rem;">Fire Risk</div><div style="color:var(--text); margin-top:0.15rem;">' + data.fire_risk + '</div></div>';
+    html += '<div style="background:var(--surface2); padding:0.4rem; border-radius:3px; font-size:0.55rem; text-align:center;">';
+    html += '<div style="color:var(--muted); text-transform:uppercase; font-size:0.45rem;">Comfort</div><div style="color:var(--text); margin-top:0.15rem;">' + data.thermal_comfort + '</div></div>';
+    html += '</div>';
+
+    html += '<div style="margin-top:0.5rem; font-size:0.5rem; color:var(--muted); font-style:italic;">Source: ' + data.data_source + '</div>';
+    panel.innerHTML = html;
+  } catch (e) {
+    panel.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--thermal-hot);">Failed to load climate data</div>';
+  }
+}
+
+// ═══ INIT ═══
+window.addEventListener('load', () => {
+  renderThermalGrid();
+  renderMiniGrid('miniLow', 16, 10, true);
+  renderMiniGrid('miniHigh', 16, 10, false);
+  renderMiniGrid('infLow', 12, 8, true);
+  renderMiniGrid('infHigh', 12, 8, false);
+  renderActivityBars();
+  renderZoneGrid();
+  renderTrendBars();
+
+  const n = 40;
+  renderChart('lossChart',
+    makeLossCurve(n, 0.4, 0.012, 0.003),
+    makeLossCurve(n, 0.45, 0.014, 0.004),
+    'var(--accent)', 'var(--accent2)'
+  );
+  renderChart('metricChart',
+    makeLossCurve(n, -30, -34.7, 0.3).map(v => -v),
+    makeLossCurve(n, -0.6, -0.921, 0.01).map(v => -v * 35),
+    'var(--warn)', 'var(--thermal-mid)'
+  );
+
+  // Thermal matrix tooltip
+  const matrixCanvas = document.getElementById('thermalMatrixCanvas');
+  if (matrixCanvas) {
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = 'position:fixed;background:rgba(13,17,23,0.95);color:#e8e4dc;padding:4px 8px;border-radius:3px;font-size:0.6rem;font-family:DM Mono,monospace;pointer-events:none;display:none;z-index:1000;border:1px solid rgba(255,255,255,0.15);';
+    document.body.appendChild(tooltip);
+
+    matrixCanvas.addEventListener('mousemove', function(e) {
+      if (!matrixCanvas._thermalMatrix) return;
+      const rect = matrixCanvas.getBoundingClientRect();
+      const scaleX = matrixCanvas.width / rect.width;
+      const scaleY = matrixCanvas.height / rect.height;
+      const col = Math.floor((e.clientX - rect.left) * scaleX / matrixCanvas._cellSize);
+      const row = Math.floor((e.clientY - rect.top) * scaleY / matrixCanvas._cellSize);
+      const m = matrixCanvas._thermalMatrix;
+      if (row >= 0 && row < m.length && col >= 0 && col < m[0].length) {
+        const val = m[row][col];
+        tooltip.textContent = val.toFixed(1) + ' K (' + (val - 273.15).toFixed(1) + '°C)';
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.clientX + 12) + 'px';
+        tooltip.style.top = (e.clientY - 28) + 'px';
+      }
+    });
+    matrixCanvas.addEventListener('mouseleave', function() { tooltip.style.display = 'none'; });
+  }
+});
+</script>
+</body>
+</html>
