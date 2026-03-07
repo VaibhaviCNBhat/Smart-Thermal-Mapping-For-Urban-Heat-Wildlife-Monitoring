@@ -16,7 +16,7 @@
     --accent2: #00d9b0;
     --warn: #ffbe00;
     --text: #e8e4dc;
-    --muted: #6b7280;
+    --muted: #8b929c;
     --thermal-cold: #0a1628;
     --thermal-cool: #1a4a8a;
     --thermal-mid: #2ea3c4;
@@ -80,13 +80,11 @@
   }
 
   /* ═══ PAGES ═══ */
-  .page { display: none; padding-top: 60px; min-height: 100vh; }
+  .page { display: none; padding-top: 60px; min-height: 100vh; position: relative; z-index: 1; }
   .page.active { display: block; animation: fadeIn 0.4s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* ══════════════════════════════════
-     PAGE 1 — DASHBOARD
-  ══════════════════════════════════ */
+
   .dashboard-grid {
     display: grid;
     grid-template-columns: 260px 1fr 260px;
@@ -102,11 +100,12 @@
 
   /* Sidebar Left */
   .sidebar-label {
-    font-size: 0.6rem; letter-spacing: 0.12em;
+    font-size: 0.65rem; letter-spacing: 0.12em;
     text-transform: uppercase; color: var(--muted);
     margin-bottom: 1.5rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border);
+    font-weight: 500;
   }
   .metric-card {
     margin-bottom: 1rem;
@@ -119,15 +118,16 @@
   .metric-card.warm { border-left-color: var(--thermal-warm); }
   .metric-card.cool { border-left-color: var(--thermal-cool); }
   .metric-card.ok { border-left-color: var(--accent2); }
-  .metric-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; }
+  .metric-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; font-weight: 500; }
   .metric-value {
-    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.6rem;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.7rem;
+    letter-spacing: -0.02em;
   }
   .metric-value.hot { color: var(--thermal-hot); }
   .metric-value.warm { color: var(--thermal-warm); }
   .metric-value.cool { color: var(--thermal-cool); }
   .metric-value.ok { color: var(--accent2); }
-  .metric-sub { font-size: 0.6rem; color: var(--muted); margin-top: 0.2rem; }
+  .metric-sub { font-size: 0.65rem; color: var(--muted); margin-top: 0.2rem; }
 
   /* Main Map Area */
   .map-panel {
@@ -138,7 +138,7 @@
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
   }
-  .map-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+  .map-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; letter-spacing: -0.01em; }
   .map-controls { display: flex; gap: 0.5rem; }
   .ctrl-btn {
     font-family: 'DM Mono', monospace; font-size: 0.65rem;
@@ -194,8 +194,9 @@
     padding: 1rem 1.5rem;
   }
   .compare-label {
-    font-size: 0.6rem; color: var(--muted); text-transform: uppercase;
+    font-size: 0.65rem; color: var(--muted); text-transform: uppercase;
     letter-spacing: 0.1em; margin-bottom: 0.75rem;
+    font-weight: 500;
   }
   .mini-grid {
     display: grid; grid-template-columns: repeat(16, 1fr); gap: 1px;
@@ -216,8 +217,8 @@
   .alert-type { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--thermal-hot); margin-bottom: 0.3rem; }
   .alert-type.warn { color: var(--thermal-warm); }
   .alert-type.info { color: var(--accent2); }
-  .alert-msg { font-size: 0.72rem; color: var(--text); line-height: 1.5; }
-  .alert-time { font-size: 0.58rem; color: var(--muted); margin-top: 0.3rem; }
+  .alert-msg { font-size: 0.75rem; color: var(--text); line-height: 1.5; }
+  .alert-time { font-size: 0.62rem; color: var(--muted); margin-top: 0.3rem; }
 
   /* Activity bar */
   .activity-bars {
@@ -231,19 +232,56 @@
   /* ══════════════════════════════════
      PAGE 2 — INFERENCE
   ══════════════════════════════════ */
+  /* Scroll-snap container for full-page sections */
+  .inf-scroll-container {
+    scroll-snap-type: y mandatory;
+    overflow-y: auto;
+    height: calc(100vh - 60px);
+    scroll-behavior: smooth;
+  }
+
+  /* Section 1: inference upload + output grid */
   .inference-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 280px 1fr;
     gap: 1px;
     background: var(--border);
-    min-height: calc(100vh - 60px);
+    height: calc(100vh - 60px);
+    overflow: hidden;
+    scroll-snap-align: start;
   }
-  .inf-panel { background: var(--surface); padding: 2rem; }
+  .inf-panel {
+    background: var(--surface);
+    padding: 1.25rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Generic full-screen snap section */
+  .inf-section-full {
+    scroll-snap-align: start;
+    height: calc(100vh - 60px);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    padding: 2rem;
+    overflow: hidden;
+  }
+  .inf-section-full .section-body {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
   .inf-title {
-    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem;
     margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
   }
-  .inf-subtitle { font-size: 0.7rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.7; }
+  .inf-subtitle { font-size: 0.7rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.6; }
 
   .upload-zone {
     border: 1px dashed rgba(255,255,255,0.15);
@@ -272,20 +310,22 @@
     padding: 0.4rem 0;
     border-bottom: 1px solid var(--border);
     color: var(--muted);
+    font-size: 0.72rem;
   }
   .file-info-row:last-child { border-bottom: none; }
-  .file-info-row span:last-child { color: var(--text); }
+  .file-info-row span:last-child { color: var(--text); font-weight: 500; }
 
   .param-section { margin-top: 2rem; }
   .param-label {
-    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
     color: var(--muted); margin-bottom: 1rem;
+    font-weight: 500;
   }
   .param-row {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 1rem;
   }
-  .param-name { font-size: 0.72rem; color: var(--text); }
+  .param-name { font-size: 0.75rem; color: var(--text); font-weight: 400; }
   .param-control {
     display: flex; gap: 0.5rem;
   }
@@ -336,9 +376,10 @@
   }
   .img-label {
     padding: 0.4rem 0.75rem;
-    background: var(--surface2); font-size: 0.6rem;
+    background: var(--surface2); font-size: 0.65rem;
     color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
     border-bottom: 1px solid var(--border);
+    font-weight: 500;
   }
 
   /* Metrics */
@@ -350,16 +391,17 @@
     padding: 1rem; text-align: center;
   }
   .metric-box-val {
-    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.4rem;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.5rem;
     color: var(--accent2); margin-bottom: 0.3rem;
+    letter-spacing: -0.02em;
   }
-  .metric-box-name { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .metric-box-name { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
 
   /* Progress bar */
   .progress-section { margin-top: 1.5rem; }
   .progress-label {
     display: flex; justify-content: space-between;
-    font-size: 0.65rem; color: var(--muted); margin-bottom: 0.4rem;
+    font-size: 0.68rem; color: var(--muted); margin-bottom: 0.4rem;
   }
   .progress-bar {
     height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
@@ -398,9 +440,9 @@
   }
   .species-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
   .species-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
-  .species-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.3rem; }
-  .species-temp { font-size: 0.65rem; color: var(--thermal-warm); }
-  .species-count { font-size: 0.6rem; color: var(--muted); margin-top: 0.3rem; }
+  .species-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; margin-bottom: 0.3rem; }
+  .species-temp { font-size: 0.68rem; color: var(--thermal-warm); font-weight: 400; }
+  .species-count { font-size: 0.65rem; color: var(--muted); margin-top: 0.3rem; }
 
   /* Heatmap zones */
   .zone-map {
@@ -485,7 +527,7 @@
     font-family: 'Syne', sans-serif; font-weight: 600;
     font-size: 0.72rem; margin-bottom: 0.3rem;
   }
-  .arch-node-desc { font-size: 0.58rem; color: var(--muted); line-height: 1.5; }
+  .arch-node-desc { font-size: 0.62rem; color: var(--muted); line-height: 1.5; }
   .arch-arrow {
     flex-shrink: 0; padding: 0 0.5rem;
     color: var(--muted); font-size: 1.2rem;
@@ -529,7 +571,7 @@
     background-size: 40px 40px;
     z-index: 0;
   }
-  .page, nav { position: relative; z-index: 1; }
+  .page { position: relative; z-index: 1; }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -556,9 +598,9 @@
     🌡️ <span>Thermal</span>Vision
   </div>
   <div class="nav-links">
-    <button class="nav-btn active" onclick="showPage('dashboard', this)">Dashboard</button>
-    <button class="nav-btn" onclick="showPage('inference', this)">Inference</button>
-    <button class="nav-btn" onclick="showPage('wildlife', this)">Wildlife</button>
+    <button class="nav-btn active" onclick="scrollToSection('inferenceSection', this)">Inference</button>
+    <button class="nav-btn" onclick="scrollToSection('lineProfileSection', this)">Line Profile</button>
+    <button class="nav-btn" onclick="scrollToSection('wildlifeSection', this)">Wildlife</button>
     <button class="nav-btn" onclick="showPage('about', this)">Architecture</button>
   </div>
   <div class="nav-status">
@@ -567,183 +609,38 @@
   </div>
 </nav>
 
-<!-- ══════════════════════════════════
-     PAGE 1 — DASHBOARD
-══════════════════════════════════ -->
-<div id="page-dashboard" class="page active">
-  <div class="dashboard-grid">
-
-    <!-- LEFT SIDEBAR -->
-    <div class="panel">
-      <div class="sidebar-label">Surface Temperature · Now</div>
-
-      <div class="metric-card hot">
-        <div class="metric-label">Max Temp</div>
-        <div class="metric-value hot">318.4 K</div>
-        <div class="metric-sub">45.2°C — Urban Core</div>
-      </div>
-      <div class="metric-card warm">
-        <div class="metric-label">Avg Temp</div>
-        <div class="metric-value warm">302.1 K</div>
-        <div class="metric-sub">28.9°C — City-wide</div>
-      </div>
-      <div class="metric-card cool">
-        <div class="metric-label">Min Temp</div>
-        <div class="metric-value cool">289.3 K</div>
-        <div class="metric-sub">16.1°C — Riverside</div>
-      </div>
-      <div class="metric-card ok">
-        <div class="metric-label">Enhancement</div>
-        <div class="metric-value ok">4×</div>
-        <div class="metric-sub">SR ratio applied</div>
-      </div>
-
-      <div style="margin-top:1.5rem;">
-        <div class="sidebar-label">Model Metrics</div>
-        <div style="font-size:0.65rem;line-height:2.2;">
-          <div style="display:flex;justify-content:space-between;color:var(--muted);">
-            <span>PSNR</span><span style="color:var(--accent2)">34.7 dB</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;color:var(--muted);">
-            <span>SSIM</span><span style="color:var(--accent2)">0.921</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;color:var(--muted);">
-            <span>RMSE</span><span style="color:var(--thermal-warm)">1.83 K</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;color:var(--muted);">
-            <span>Scene</span><span style="color:var(--text)">Bengaluru</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;color:var(--muted);">
-            <span>Band</span><span style="color:var(--text)">B10 · TIR</span>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top:1.5rem;">
-        <div class="sidebar-label">Hourly Scans</div>
-        <div class="activity-bars" id="actBars"></div>
-      </div>
-    </div>
-
-    <!-- MAIN MAP AREA -->
-    <div class="map-panel" style="background:var(--surface);display:flex;flex-direction:column;">
-      <div class="map-header">
-        <div class="map-title">Thermal Heatmap — Super-Resolved Output</div>
-        <div class="map-controls">
-          <button class="ctrl-btn active">Thermal</button>
-          <button class="ctrl-btn" onclick="toggleMapMode(this)">Optical</button>
-          <button class="ctrl-btn" onclick="toggleMapMode(this)">Overlay</button>
-          <button class="ctrl-btn" onclick="toggleMapMode(this)">Diff</button>
-        </div>
-      </div>
-
-      <div class="thermal-map-container">
-        <div class="thermal-canvas">
-          <div class="thermal-grid" id="thermalGrid"></div>
-        </div>
-        <div class="map-legend">
-          <span>cold</span>
-          <div>
-            <div class="legend-bar"></div>
-            <div class="legend-labels"><span>289K</span><span>295K</span><span>302K</span><span>309K</span><span>318K</span></div>
-          </div>
-          <span>hot</span>
-        </div>
-      </div>
-
-      <!-- Comparison row -->
-      <div class="comparison-row">
-        <div class="compare-panel">
-          <div class="compare-label">Low-Res Input (30m)</div>
-          <div class="mini-grid" id="miniLow"></div>
-        </div>
-        <div class="compare-panel">
-          <div class="compare-label">Super-Resolved (7.5m)</div>
-          <div class="mini-grid" id="miniHigh"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT SIDEBAR -->
-    <div class="panel">
-      <div class="sidebar-label">Alerts & Events</div>
-
-      <div class="alert-item">
-        <div class="alert-type">⚠ Heat Island</div>
-        <div class="alert-msg">Zone 4B exceeded 315K threshold. Urban core shows concentrated radiant heat.</div>
-        <div class="alert-time">12 min ago</div>
-      </div>
-      <div class="alert-item warn">
-        <div class="alert-type warn">⚡ Anomaly</div>
-        <div class="alert-msg">Unusual thermal patch detected near coords 13.02°N, 77.58°E — possible industrial source.</div>
-        <div class="alert-time">38 min ago</div>
-      </div>
-      <div class="alert-item info">
-        <div class="alert-type info">✓ Wildlife</div>
-        <div class="alert-msg">Thermal signature consistent with large mammal cluster near forest boundary.</div>
-        <div class="alert-time">1h 14min ago</div>
-      </div>
-      <div class="alert-item warn">
-        <div class="alert-type warn">☁ Cloud Mask</div>
-        <div class="alert-msg">8.3% of scene contaminated. Patches auto-filtered before inference.</div>
-        <div class="alert-time">2h ago</div>
-      </div>
-
-      <div style="margin-top:1.5rem;">
-        <div class="sidebar-label">Data Pipeline</div>
-        <div style="font-size:0.65rem;">
-          <div class="progress-section">
-            <div class="progress-label"><span>Ingestion</span><span style="color:var(--accent2)">Done</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-          </div>
-          <div class="progress-section" style="margin-top:0.75rem;">
-            <div class="progress-label"><span>Preprocessing</span><span style="color:var(--accent2)">Done</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-          </div>
-          <div class="progress-section" style="margin-top:0.75rem;">
-            <div class="progress-label"><span>SR Inference</span><span style="color:var(--accent2)">Done</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-          </div>
-          <div class="progress-section" style="margin-top:0.75rem;">
-            <div class="progress-label"><span>Analysis</span><span style="color:var(--thermal-warm)">87%</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:87%"></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
+<!-- Dashboard page removed — Line Profile button navigates to inference page -->
 
 <!-- ══════════════════════════════════
      PAGE 2 — INFERENCE
 ══════════════════════════════════ -->
-<div id="page-inference" class="page">
-  <div class="inference-layout">
+<div id="page-inference" class="page active">
+  <div class="inf-scroll-container">
+  <div class="inference-layout" id="inferenceSection">
     <!-- Input Panel -->
     <div class="inf-panel">
       <div class="inf-title">Run Inference</div>
       <div class="inf-subtitle">Select a random test sample from the dataset or upload your own images to run the model.</div>
 
-      <div class="upload-zone" style="display:flex; gap:10px; padding:1.5rem;">
+      <div class="upload-zone" style="display:flex; flex-direction:column; gap:0.75rem; padding:1rem;">
         
         <!-- Option 1: Dataset Random -->
-        <div onclick="runInferenceRandom()" style="flex:1; border:1px dashed rgba(255,255,255,0.2); padding:1rem; border-radius:4px; cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
-            <span class="upload-icon">🎲</span>
+        <div onclick="runInferenceRandom()" style="border:1px dashed rgba(255,255,255,0.2); padding:0.75rem; border-radius:4px; cursor:pointer; text-align:center;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
+            <span class="upload-icon" style="font-size:1.5rem; margin-bottom:0.3rem;">🎲</span>
             <div class="upload-text"><strong>Random Test Sample</strong><br>Load from Test Set</div>
         </div>
 
         <!-- Option 2: Upload -->
-        <div style="flex:1; border:1px dashed rgba(255,255,255,0.2); padding:1rem; border-radius:4px; position:relative;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
-            <span class="upload-icon">📂</span>
+        <div style="border:1px dashed rgba(255,255,255,0.2); padding:0.75rem; border-radius:4px; position:relative;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
+            <span class="upload-icon" style="font-size:1.5rem; margin-bottom:0.3rem;">📂</span>
             <div class="upload-text"><strong>Upload Custom</strong><br>
-                <input type="file" id="uploadOptical" accept="image/*" style="font-size:0.6rem; width:100%; margin-top:5px;">
-                <div style="font-size:0.6rem; color:var(--muted); margin-top:2px;">Optical (High Res)</div>
+                <input type="file" id="uploadOptical" accept="image/*" style="font-size:0.55rem; width:100%; margin-top:4px;">
+                <div style="font-size:0.55rem; color:var(--muted); margin-top:1px;">Optical (High Res)</div>
                 
-                <input type="file" id="uploadThermal" accept="image/*" style="font-size:0.6rem; width:100%; margin-top:5px;">
-                <div style="font-size:0.6rem; color:var(--muted); margin-top:2px;">Thermal (Low Res)</div>
+                <input type="file" id="uploadThermal" accept="image/*" style="font-size:0.55rem; width:100%; margin-top:4px;">
+                <div style="font-size:0.55rem; color:var(--muted); margin-top:1px;">Thermal (Low Res)</div>
                 
-                <button onclick="runInferenceUpload()" style="width:100%; margin-top:8px; background:var(--surface); border:1px solid var(--accent2); color:var(--accent2); padding:4px; font-size:0.65rem; cursor:pointer;">Run Custom</button>
+                <button onclick="runInferenceUpload()" style="width:100%; margin-top:6px; background:var(--surface); border:1px solid var(--accent2); color:var(--accent2); padding:3px; font-size:0.6rem; cursor:pointer; border-radius:3px;">Run Custom</button>
             </div>
         </div>
 
@@ -764,34 +661,33 @@
     <div class="inf-panel">
       <div class="output-tabs">
         <button class="tab-btn active" onclick="switchTab(this)">Visual Output</button>
-        <button class="tab-btn" onclick="switchTab(this)">Diff View</button>
       </div>
 
-      <div class="output-compare">
-        <div class="img-frame">
+      <div class="output-compare" style="flex:1; min-height:0; display:flex; flex-direction:row; gap:0.5rem;">
+        <div class="img-frame" style="flex:1; min-height:0; display:flex; flex-direction:column;">
           <div class="img-label">Input · Low-Res (30m)</div>
-          <div style="height:180px; background:var(--surface2); display:flex; align-items:center; justify-content:center;">
-            <img id="imgInput" style="max-width:100%; max-height:100%; display:none;">
+          <div style="flex:1; min-height:0; background:var(--surface2); display:flex; align-items:center; justify-content:center;">
+            <img id="imgInput" style="max-width:100%; max-height:100%; object-fit:contain; display:none;">
             <div id="imgInputPlaceholder" style="color:var(--muted)">Waiting...</div>
           </div>
         </div>
-        <div class="img-frame">
+        <div class="img-frame" style="flex:1; min-height:0; display:flex; flex-direction:column;">
           <div class="img-label">Output · Super-Res (7.5m)</div>
-          <div style="height:180px; background:var(--surface2); display:flex; align-items:center; justify-content:center;">
-            <img id="imgOutput" style="max-width:100%; max-height:100%; display:none;">
+          <div style="flex:1; min-height:0; background:var(--surface2); display:flex; align-items:center; justify-content:center;">
+            <img id="imgOutput" style="max-width:100%; max-height:100%; object-fit:contain; display:none;">
             <div id="imgOutputPlaceholder" style="color:var(--muted)">Waiting...</div>
           </div>
         </div>
-        <div class="img-frame">
+        <div class="img-frame" style="flex:1; min-height:0; display:flex; flex-direction:column;">
           <div class="img-label">GeoTIFF · Thermal Matrix (K)</div>
-          <div style="height:180px; background:#000; position:relative; display:flex; align-items:center; justify-content:center;">
-            <canvas id="thermalMatrixCanvas" style="width:100%; height:100%; image-rendering:pixelated;"></canvas>
+          <div style="flex:1; min-height:0; background:var(--surface2); position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <canvas id="thermalMatrixCanvas" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering:pixelated;"></canvas>
             <div id="matrixPlaceholder" style="position:absolute; color:var(--muted); font-size:0.65rem;">Waiting...</div>
           </div>
         </div>
       </div>
 
-      <div class="metrics-grid">
+      <div class="metrics-grid" style="flex-shrink:0;">
         <div class="metric-box">
           <div class="metric-box-val" id="metricPSNR">--</div>
           <div class="metric-box-name">PSNR (dB)</div>
@@ -813,161 +709,111 @@
 
     </div>
 
-    <!-- Location Map Panel -->
-    <div class="inf-panel">
-      <div class="inf-title">📍 Location Map</div>
-      <div class="inf-subtitle">Geographic region of the input Landsat scene</div>
-      <div id="mapContainer" style="height:350px; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden;">
-        <div id="mapPlaceholder" style="color:var(--muted); font-size:0.7rem; text-align:center;">
-          <div style="font-size:2rem; margin-bottom:0.5rem;">🗺️</div>
-          Run inference to view location
-        </div>
-      </div>
-      <div id="coordsInfo" style="margin-top:0.75rem; display:none;">
-        <div style="display:flex; gap:1rem; font-size:0.65rem;">
-          <div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; flex:1;">
-            <span style="color:var(--muted);">Latitude</span>
-            <span id="dispLat" style="color:var(--accent2); float:right;">--</span>
-          </div>
-          <div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; flex:1;">
-            <span style="color:var(--muted);">Longitude</span>
-            <span id="dispLon" style="color:var(--accent2); float:right;">--</span>
-          </div>
-          <div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; flex:1;">
-            <span style="color:var(--muted);">WRS-2</span>
-            <span id="dispWRS" style="color:var(--accent2); float:right;">--</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  </div><!-- end inference-layout -->
 
-    <!-- Wildlife & Climate Risk Panel -->
-    <div class="inf-panel" style="overflow-y:auto; max-height:500px;">
-      <div class="inf-title">🦁 Wildlife Feasibility & Climate Risk</div>
-      <div class="inf-subtitle">Species data via GBIF API · Climate indicators via Copernicus CDS</div>
+  <!-- ── Section 2: Line Profile ── -->
+  <div class="inf-section-full" id="lineProfileSection">
+    <div class="inf-title">📈 Line Profile</div>
+    <div class="inf-subtitle">Draw a line across the thermal image to compare LR vs SR temperature profiles — sharper SR peaks indicate recovered detail</div>
 
-      <div style="margin-top:1.5rem;">
-        <div class="sidebar-label">Species Occurrences — GBIF</div>
-        <div id="speciesList" style="color:var(--muted); font-size:0.7rem;">
-          <div style="text-align:center; padding:1rem;">
-            <div style="font-size:1.5rem; margin-bottom:0.5rem;">🔍</div>
-            Run inference to load species data
+    <div class="section-body">
+      <div style="display:grid; grid-template-columns:auto 1fr; gap:1.5rem; flex:1; min-height:0;">
+
+        <!-- Left: Thermal image with line overlay -->
+        <div style="display:flex; flex-direction:column; min-height:0; width:280px;">
+          <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem; flex-shrink:0;">
+            <div style="font-size:0.62rem; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">SR Thermal</div>
+            <div style="display:flex; gap:0.25rem;">
+              <button id="btnLineH" onclick="setLineDirection('h')" style="padding:2px 8px; font-size:0.58rem; border:1px solid var(--border); background:var(--accent); color:#fff; border-radius:3px; cursor:pointer;">H</button>
+              <button id="btnLineV" onclick="setLineDirection('v')" style="padding:2px 8px; font-size:0.58rem; border:1px solid var(--border); background:var(--surface2); color:var(--text); border-radius:3px; cursor:pointer;">V</button>
+            </div>
+            <div id="linePositionLabel" style="font-size:0.55rem; color:var(--muted);">Row: —</div>
+          </div>
+          <div style="background:var(--surface2); border-radius:6px; flex:1; display:flex; align-items:center; justify-content:center; min-height:0; position:relative; overflow:hidden;">
+            <canvas id="lineProfileCanvas" width="256" height="256" style="max-width:100%; max-height:100%; object-fit:contain; image-rendering:pixelated; cursor:crosshair;"></canvas>
+            <div id="lineProfilePlaceholder" style="color:var(--muted); font-size:0.65rem; text-align:center; position:absolute;">
+              <div style="font-size:1.5rem; margin-bottom:0.3rem;">📈</div>Run inference first
+            </div>
           </div>
         </div>
-      </div>
 
-      <div style="margin-top:1.5rem;">
-        <div class="sidebar-label">Climate-Biodiversity Risk — Copernicus CDS</div>
-        <div id="climateData" style="color:var(--muted); font-size:0.7rem;">
-          <div style="text-align:center; padding:1rem;">
-            <div style="font-size:1.5rem; margin-bottom:0.5rem;">🌍</div>
-            Run inference to load climate analysis
+        <!-- Right: Chart.js line plot -->
+        <div style="display:flex; flex-direction:column; min-height:0;">
+          <div style="font-size:0.62rem; color:var(--accent); margin-bottom:0.5rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Temperature vs Distance</div>
+          <div style="background:var(--surface2); border-radius:6px; flex:1; min-height:0; padding:0.75rem; position:relative;">
+            <canvas id="lineProfileChart"></canvas>
+            <div id="lineChartPlaceholder" style="color:var(--muted); font-size:0.65rem; text-align:center; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);">
+              <div style="font-size:1.5rem; margin-bottom:0.3rem;">📊</div>Click on the thermal image to draw a line profile
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-  </div>
-</div>
-
-<!-- ══════════════════════════════════
-     PAGE 4 — WILDLIFE
-══════════════════════════════════ -->
-<div id="page-wildlife" class="page">
-  <div style="padding:2rem 2rem 0; background:var(--surface); border-bottom:1px solid var(--border);">
-    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;margin-bottom:0.5rem;">Wildlife & Heat Island Analysis</div>
-    <div style="font-size:0.68rem;color:var(--muted);margin-bottom:1rem;">Thermal signatures cross-referenced with habitat data · Bengaluru Metro Region</div>
-    <div>
-      <span class="chip chip-red">3 Heat Alerts</span>
-      <span class="chip chip-orange">2 Anomalies</span>
-      <span class="chip chip-green">5 Wildlife Detections</span>
-      <span class="chip chip-blue">Cloud-free: 91.7%</span>
-    </div>
-    <div style="height:1px;margin-top:1rem;"></div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto;gap:1px;background:var(--border);">
-
-    <!-- Zone heatmap -->
-    <div style="background:var(--surface);padding:1.5rem;grid-column:span 2;">
-      <div class="sidebar-label">Thermal Zone Map — 12×8 Grid</div>
-      <div class="zone-map">
-        <div class="zone-grid" id="zoneGrid" style="grid-template-columns:repeat(12,1fr);"></div>
-      </div>
-      <div style="margin-top:1rem;display:flex;gap:1.5rem;font-size:0.6rem;color:var(--muted);">
-        <div>🔴 &gt;312K — Critical</div>
-        <div>🟠 305–312K — High</div>
-        <div>🟡 298–305K — Moderate</div>
-        <div>🟢 &lt;298K — Normal</div>
-        <div>⬛ Wildlife sig.</div>
-      </div>
-    </div>
-
-    <!-- Species -->
-    <div style="background:var(--surface);padding:1.5rem;">
-      <div class="sidebar-label">Detected Species</div>
-      <div class="species-grid">
-        <div class="species-card">
-          <div class="species-icon">🐆</div>
-          <div class="species-name">Leopard</div>
-          <div class="species-temp">Body: 38.5°C</div>
-          <div class="species-count">2 signatures · NE zone</div>
-        </div>
-        <div class="species-card">
-          <div class="species-icon">🦅</div>
-          <div class="species-name">Raptor</div>
-          <div class="species-temp">Body: 41.2°C</div>
-          <div class="species-count">3 signatures · open</div>
-        </div>
-        <div class="species-card">
-          <div class="species-icon">🐘</div>
-          <div class="species-name">Elephant</div>
-          <div class="species-temp">Body: 36.1°C</div>
-          <div class="species-count">Herd · SW corridor</div>
-        </div>
-        <div class="species-card">
-          <div class="species-icon">🦌</div>
-          <div class="species-name">Deer</div>
-          <div class="species-temp">Body: 38.8°C</div>
-          <div class="species-count">Group · forest edge</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Trend -->
-    <div style="background:var(--surface);padding:1.5rem;">
-      <div class="sidebar-label">Monthly Avg Temp (K)</div>
-      <div class="trend-bars" id="trendBars"></div>
-      <div style="display:flex;gap:4px;margin-top:4px;" id="trendLabels"></div>
-    </div>
-
-    <!-- UHI analysis -->
-    <div style="background:var(--surface);padding:1.5rem;grid-column:span 2;">
-      <div class="sidebar-label">Urban Heat Island — Zone Analysis</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:0.5rem;">
-        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--thermal-hot);">
-          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">CBD Core</div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--thermal-hot)">+8.4K</div>
-          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">above rural baseline</div>
-        </div>
-        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--thermal-warm);">
-          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">Industrial</div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--thermal-warm)">+5.9K</div>
-          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">above rural baseline</div>
-        </div>
-        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--thermal-mid);">
-          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">Residential</div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--thermal-mid)">+3.2K</div>
-          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">above rural baseline</div>
-        </div>
-        <div style="background:var(--surface2);border-radius:4px;padding:1rem;border-left:3px solid var(--accent2);">
-          <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">Green Zones</div>
-          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--accent2)">−1.1K</div>
-          <div style="font-size:0.58rem;color:var(--muted);margin-top:0.2rem">below rural baseline</div>
-        </div>
       </div>
     </div>
   </div>
+
+  <!-- ── Section 3: Wildlife & Climate Risk ── -->
+  <div class="inf-section-full" id="wildlifeSection">
+    <div class="inf-title">📍 Location Map &amp; 🦁 Wildlife Feasibility &amp; Climate Risk</div>
+    <div class="inf-subtitle">Geographic region of the Landsat scene · Species data via GBIF API · Climate indicators via Copernicus CDS</div>
+
+    <div class="section-body">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; flex:1; min-height:0;">
+
+        <!-- Left: Map + Coordinates -->
+        <div style="display:flex; flex-direction:column; min-height:0;">
+          <div id="mapContainer" style="flex:1; min-height:0; border-radius:6px; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <div id="mapPlaceholder" style="color:var(--muted); font-size:0.7rem; text-align:center;">
+              <div style="font-size:2rem; margin-bottom:0.5rem;">🗺️</div>
+              Run inference to view location
+            </div>
+          </div>
+          <div id="coordsInfo" style="margin-top:0.5rem; display:none;">
+            <div style="display:flex; gap:0.5rem; font-size:0.6rem;">
+              <div style="background:var(--surface2); padding:0.4rem 0.6rem; border-radius:3px; flex:1;">
+                <span style="color:var(--muted);">Latitude</span>
+                <span id="dispLat" style="color:var(--accent2); float:right;">--</span>
+              </div>
+              <div style="background:var(--surface2); padding:0.4rem 0.6rem; border-radius:3px; flex:1;">
+                <span style="color:var(--muted);">Longitude</span>
+                <span id="dispLon" style="color:var(--accent2); float:right;">--</span>
+              </div>
+              <div style="background:var(--surface2); padding:0.4rem 0.6rem; border-radius:3px; flex:1;">
+                <span style="color:var(--muted);">WRS-2</span>
+                <span id="dispWRS" style="color:var(--accent2); float:right;">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Wildlife + Climate -->
+        <div style="display:flex; flex-direction:column; min-height:0; overflow-y:auto;">
+          <div style="margin-bottom:0.75rem; flex-shrink:0;">
+            <div class="sidebar-label">🦁 Species Occurrences — GBIF</div>
+            <div id="speciesList" style="color:var(--muted); font-size:0.7rem;">
+              <div style="text-align:center; padding:1rem;">
+                <div style="font-size:1.5rem; margin-bottom:0.5rem;">🔍</div>
+                Run inference to load species data
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="sidebar-label">🌍 Climate-Biodiversity Risk — Copernicus CDS</div>
+            <div id="climateData" style="color:var(--muted); font-size:0.7rem;">
+              <div style="text-align:center; padding:1rem;">
+                <div style="font-size:1.5rem; margin-bottom:0.5rem;">🌍</div>
+                Run inference to load climate analysis
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end inf-scroll-container -->
 </div>
 
 <!-- ══════════════════════════════════
@@ -1091,6 +937,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 // ═══ PAGE NAVIGATION ═══
 function showPage(id, btn) {
@@ -1098,6 +945,23 @@ function showPage(id, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   btn.classList.add('active');
+}
+
+function scrollToSection(sectionId, btn) {
+  // Ensure inference page is active
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-inference').classList.add('active');
+  btn.classList.add('active');
+  // Scroll to the section within the scroll container
+  setTimeout(() => {
+    const section = document.getElementById(sectionId);
+    if (section) section.scrollIntoView({ behavior: 'smooth' });
+    // Leaflet resize if scrolling to wildlife
+    if (sectionId === 'wildlifeSection' && typeof leafletMap !== 'undefined' && leafletMap) {
+      setTimeout(() => leafletMap.invalidateSize(), 400);
+    }
+  }, 100);
 }
 
 // ═══ THERMAL COLOR ═══
@@ -1122,6 +986,29 @@ function tempToColor(t) {
     }
   }
   return 'rgb(255,240,224)';
+}
+
+function tempToRGB(t) {
+  const stops = [
+    [0,    [10, 22, 40]],
+    [0.2,  [26, 74, 138]],
+    [0.45, [46, 163, 196]],
+    [0.65, [245, 166, 35]],
+    [0.85, [232, 52, 28]],
+    [1,    [255, 240, 224]]
+  ];
+  for (let i = 1; i < stops.length; i++) {
+    if (t <= stops[i][0]) {
+      const lo = stops[i-1], hi = stops[i];
+      const f = (t - lo[0]) / (hi[0] - lo[0]);
+      return [
+        Math.round(lo[1][0] + f*(hi[1][0]-lo[1][0])),
+        Math.round(lo[1][1] + f*(hi[1][1]-lo[1][1])),
+        Math.round(lo[1][2] + f*(hi[1][2]-lo[1][2]))
+      ];
+    }
+  }
+  return [255, 240, 224];
 }
 
 // ═══ GENERATE NOISE FIELD ═══
@@ -1327,6 +1214,209 @@ function simulateUpload() {
   document.getElementById('fileInfo').style.display = 'block';
 }
 
+// ═══ LINE PROFILE ═══
+let lineProfileData = { sr: null, lr: null, srImg: null };
+let lineDirection = 'h'; // 'h' = horizontal, 'v' = vertical
+let linePosition = 128; // default center
+let lineProfileChart = null;
+
+function setLineDirection(dir) {
+  lineDirection = dir;
+  document.getElementById('btnLineH').style.background = dir === 'h' ? 'var(--accent)' : 'var(--surface2)';
+  document.getElementById('btnLineH').style.color = dir === 'h' ? '#fff' : 'var(--text)';
+  document.getElementById('btnLineV').style.background = dir === 'v' ? 'var(--accent)' : 'var(--surface2)';
+  document.getElementById('btnLineV').style.color = dir === 'v' ? '#fff' : 'var(--text)';
+  if (lineProfileData.sr) drawLineOnCanvas();
+}
+
+function drawLineOnCanvas() {
+  const canvas = document.getElementById('lineProfileCanvas');
+  if (!canvas || !lineProfileData.srImg) return;
+  const ctx = canvas.getContext('2d');
+
+  // Draw the SR thermal image
+  ctx.drawImage(lineProfileData.srImg, 0, 0, 256, 256);
+
+  // Draw the line
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  if (lineDirection === 'h') {
+    ctx.moveTo(0, linePosition);
+    ctx.lineTo(256, linePosition);
+  } else {
+    ctx.moveTo(linePosition, 0);
+    ctx.lineTo(linePosition, 256);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Update label
+  const label = document.getElementById('linePositionLabel');
+  if (label) label.textContent = lineDirection === 'h' ? `Row: ${linePosition}` : `Col: ${linePosition}`;
+
+  // Extract and plot profiles
+  plotLineProfile();
+}
+
+function plotLineProfile() {
+  const sr = lineProfileData.sr;
+  const lr = lineProfileData.lr;
+  if (!sr || !lr) return;
+
+  const srSize = sr.length; // 256
+  const lrSize = lr.length; // 256 (already upscaled to 256x256)
+
+  let srLine, lrLine;
+  if (lineDirection === 'h') {
+    const row = Math.min(linePosition, srSize - 1);
+    srLine = sr[row];
+    lrLine = lr[Math.min(row, lrSize - 1)];
+  } else {
+    const col = Math.min(linePosition, (sr[0] || []).length - 1);
+    srLine = sr.map(r => r[col]);
+    lrLine = lr.map(r => r[Math.min(col, (r.length || 1) - 1)]);
+  }
+
+  const labels = srLine.map((_, i) => i);
+
+  const chartPlaceholder = document.getElementById('lineChartPlaceholder');
+  if (chartPlaceholder) chartPlaceholder.style.display = 'none';
+
+  const chartCanvas = document.getElementById('lineProfileChart');
+  if (!chartCanvas) return;
+
+  if (lineProfileChart) lineProfileChart.destroy();
+
+  lineProfileChart = new Chart(chartCanvas, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'LR Thermal (30m)',
+          data: lrLine,
+          borderColor: '#ff6b6b',
+          backgroundColor: 'rgba(255,107,107,0.1)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0,
+          fill: false
+        },
+        {
+          label: 'SR Thermal (7.5m)',
+          data: srLine,
+          borderColor: '#00ff88',
+          backgroundColor: 'rgba(0,255,136,0.1)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 200 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#b0b8c8', font: { size: 11 }, usePointStyle: true, pointStyle: 'line' }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(20,22,30,0.95)',
+          titleColor: '#e0e4ec',
+          bodyColor: '#b0b8c8',
+          callbacks: {
+            title: (items) => `Pixel ${items[0].label}`,
+            label: (item) => `${item.dataset.label}: ${item.raw.toFixed(2)} K`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: lineDirection === 'h' ? 'Column (pixel)' : 'Row (pixel)', color: '#b0b8c8', font: { size: 11 } },
+          ticks: { color: '#6c7386', maxTicksLimit: 10 },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          title: { display: true, text: 'Temperature (K)', color: '#b0b8c8', font: { size: 11 } },
+          ticks: { color: '#6c7386' },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        }
+      }
+    }
+  });
+}
+
+function initLineProfileCanvas() {
+  const canvas = document.getElementById('lineProfileCanvas');
+  if (!canvas) return;
+
+  canvas.addEventListener('click', (e) => {
+    if (!lineProfileData.sr) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = 256 / rect.width;
+    const scaleY = 256 / rect.height;
+    if (lineDirection === 'h') {
+      linePosition = Math.round((e.clientY - rect.top) * scaleY);
+    } else {
+      linePosition = Math.round((e.clientX - rect.left) * scaleX);
+    }
+    linePosition = Math.max(0, Math.min(255, linePosition));
+    drawLineOnCanvas();
+  });
+}
+
+function updateLineProfile(data) {
+  // Store thermal matrices for line extraction
+  if (data.thermal_matrix) lineProfileData.sr = data.thermal_matrix;
+  if (data.thermal_matrix_lr) lineProfileData.lr = data.thermal_matrix_lr;
+
+  // Load SR image onto canvas
+  if (data.prediction) {
+    const placeholder = document.getElementById('lineProfilePlaceholder');
+    if (placeholder) placeholder.style.display = 'none';
+
+    const img = new Image();
+    img.onload = () => {
+      lineProfileData.srImg = img;
+      linePosition = 128;
+      drawLineOnCanvas();
+    };
+    img.src = data.prediction;
+  }
+}
+
+// Init canvas listener on load
+document.addEventListener('DOMContentLoaded', initLineProfileCanvas);
+
+// Scroll-based nav highlight
+document.addEventListener('DOMContentLoaded', function() {
+  const scrollContainer = document.querySelector('.inf-scroll-container');
+  if (!scrollContainer) return;
+  const sections = ['inferenceSection', 'lineProfileSection', 'wildlifeSection'];
+  scrollContainer.addEventListener('scroll', function() {
+    const containerTop = scrollContainer.getBoundingClientRect().top;
+    const threshold = scrollContainer.clientHeight * 0.4;
+    let activeId = sections[0];
+    for (const id of sections) {
+      const el = document.getElementById(id);
+      if (el) {
+        const offset = el.getBoundingClientRect().top - containerTop;
+        if (offset <= threshold) activeId = id;
+      }
+    }
+    const navBtns = document.querySelectorAll('.nav-links .nav-btn');
+    navBtns.forEach(btn => {
+      const match = btn.getAttribute('onclick') || '';
+      btn.classList.toggle('active', match.includes(activeId));
+    });
+  });
+});
+
 async function updateUIWithData(data) {
         // Update Images
         const imgInput = document.getElementById('imgInput');
@@ -1362,7 +1452,7 @@ async function updateUIWithData(data) {
 
         // Update map and wildlife panels
         if (data.coordinates) {
-            initMap(data.coordinates.lat, data.coordinates.lon);
+            initMap(data.coordinates.lat, data.coordinates.lon, data.coordinates.bounds);
 
             const coordsInfo = document.getElementById('coordsInfo');
             if (coordsInfo) {
@@ -1377,6 +1467,9 @@ async function updateUIWithData(data) {
             const meanTemp = data.temp_range ? (data.temp_range.min + data.temp_range.max) / 2 : 300;
             fetchClimateRisk(data.coordinates.lat, data.coordinates.lon, meanTemp);
         }
+
+        // Render line profile
+        updateLineProfile(data);
 }
 
 async function runInferenceRandom() {
@@ -1439,28 +1532,42 @@ function renderThermalMatrix(matrix, tempRange) {
   const canvas = document.getElementById('thermalMatrixCanvas');
   if (!canvas || !matrix) return;
   const ctx = canvas.getContext('2d');
-  const gridSize = matrix.length;
-  const cellSize = 20;
+  const h = matrix.length;
+  const w = matrix[0].length;
 
-  canvas.width = gridSize * cellSize;
-  canvas.height = gridSize * cellSize;
+  canvas.width = w;
+  canvas.height = h;
 
-  const allVals = matrix.flat();
-  const minT = tempRange?.min ?? Math.min(...allVals);
-  const maxT = tempRange?.max ?? Math.max(...allVals);
+  let minT = tempRange?.min ?? Infinity;
+  let maxT = tempRange?.max ?? -Infinity;
+  if (!tempRange) {
+    for (let i = 0; i < h; i++) {
+      for (let j = 0; j < w; j++) {
+        if (matrix[i][j] < minT) minT = matrix[i][j];
+        if (matrix[i][j] > maxT) maxT = matrix[i][j];
+      }
+    }
+  }
   const range = maxT - minT || 1;
 
-  for (let i = 0; i < gridSize; i++) {
-    for (let j = 0; j < gridSize; j++) {
+  const imageData = ctx.createImageData(w, h);
+  const data = imageData.data;
+
+  for (let i = 0; i < h; i++) {
+    for (let j = 0; j < w; j++) {
       const val = matrix[i][j];
       const t = Math.max(0, Math.min(1, (val - minT) / range));
-      ctx.fillStyle = tempToColor(t);
-      ctx.fillRect(j * cellSize, i * cellSize, cellSize - 1, cellSize - 1);
+      const rgb = tempToRGB(t);
+      const idx = (i * w + j) * 4;
+      data[idx]     = rgb[0];
+      data[idx + 1] = rgb[1];
+      data[idx + 2] = rgb[2];
+      data[idx + 3] = 255;
     }
   }
 
+  ctx.putImageData(imageData, 0, 0);
   canvas._thermalMatrix = matrix;
-  canvas._cellSize = cellSize;
 }
 
 // ═══ LOCATION MAP (Leaflet + OpenStreetMap) ═══
@@ -1468,12 +1575,12 @@ let leafletMap = null;
 let leafletMarker = null;
 let leafletRect = null;
 
-function initMap(lat, lon) {
+function initMap(lat, lon, bounds) {
   const placeholder = document.getElementById('mapPlaceholder');
   if (placeholder) placeholder.style.display = 'none';
 
   if (!leafletMap) {
-    leafletMap = L.map('mapContainer').setView([lat, lon], 7);
+    leafletMap = L.map('mapContainer', { scrollWheelZoom: false }).setView([lat, lon], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 18
@@ -1489,11 +1596,19 @@ function initMap(lat, lon) {
     '<b>Landsat Scene Center</b><br>Lat: ' + lat.toFixed(4) + '°, Lon: ' + lon.toFixed(4) + '°'
   ).openPopup();
 
-  const offset = 0.9;
-  leafletRect = L.rectangle(
-    [[lat - offset, lon - offset], [lat + offset, lon + offset]],
-    {color: '#ff5c1a', weight: 2, fillOpacity: 0.08}
-  ).addTo(leafletMap);
+  // Use real GeoTIFF bounds if available, otherwise approximate
+  if (bounds && bounds.length === 4) {
+    leafletRect = L.rectangle(
+      [[bounds[1], bounds[0]], [bounds[3], bounds[2]]],
+      {color: '#ff5c1a', weight: 2, fillOpacity: 0.08}
+    ).addTo(leafletMap);
+  } else {
+    const offset = 0.9;
+    leafletRect = L.rectangle(
+      [[lat - offset, lon - offset], [lat + offset, lon + offset]],
+      {color: '#ff5c1a', weight: 2, fillOpacity: 0.08}
+    ).addTo(leafletMap);
+  }
 
   setTimeout(function() { leafletMap.invalidateSize(); }, 200);
 }
@@ -1508,23 +1623,19 @@ async function fetchGBIFSpecies(lat, lon) {
     const data = await response.json();
 
     if (data.species && data.species.length > 0) {
-      let html = '<div style="font-size:0.58rem; color:var(--muted); margin-bottom:0.75rem;">' + data.total_records.toLocaleString() + ' total occurrence records in region</div>';
-      html += '<div style="display:grid; gap:0.4rem; max-height:200px; overflow-y:auto;">';
-
       const icons = {'Animalia':'🐾','Plantae':'🌿','Fungi':'🍄','Aves':'🐦','Mammalia':'🦊'};
+      const top4 = data.species.slice(0, 4);
 
-      for (const sp of data.species) {
-        const riskColor = (sp.iucn === 'VULNERABLE' || sp.iucn === 'VU') ? 'var(--thermal-warm)' :
-                          (sp.iucn === 'ENDANGERED' || sp.iucn === 'EN') ? 'var(--thermal-hot)' :
-                          (sp.iucn === 'CRITICALLY_ENDANGERED' || sp.iucn === 'CR') ? '#ff0040' : 'var(--accent2)';
+      let html = '<div class="species-grid" style="margin-top:0.5rem;">';
+
+      for (const sp of top4) {
         const icon = icons[sp.kingdom] || icons[sp.class_name] || '🔬';
+        const displayName = sp.vernacularName || sp.species;
 
-        html += '<div style="background:var(--surface2); padding:0.5rem 0.75rem; border-radius:3px; border-left:2px solid ' + riskColor + '; font-size:0.62rem;">';
-        html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
-        html += '<span style="color:var(--text);"><span style="margin-right:4px;">' + icon + '</span><em>' + sp.species + '</em></span>';
-        html += '<span style="color:var(--muted); font-size:0.55rem;">' + sp.count + ' rec.</span>';
-        html += '</div>';
-        html += '<div style="color:var(--muted); font-size:0.5rem; margin-top:0.15rem;">' + (sp.order || sp.class_name || sp.kingdom) + (sp.iucn ? ' · <span style="color:' + riskColor + ';">' + sp.iucn + '</span>' : '') + '</div>';
+        html += '<div class="species-card">';
+        html += '<div class="species-icon">' + icon + '</div>';
+        html += '<div class="species-name">' + displayName + '</div>';
+        html += '<div class="species-count">' + (sp.order || sp.class_name || sp.kingdom) + (sp.iucn ? ' · ' + sp.iucn : '') + '</div>';
         html += '</div>';
       }
       html += '</div>';
@@ -1619,8 +1730,8 @@ window.addEventListener('load', () => {
       const rect = matrixCanvas.getBoundingClientRect();
       const scaleX = matrixCanvas.width / rect.width;
       const scaleY = matrixCanvas.height / rect.height;
-      const col = Math.floor((e.clientX - rect.left) * scaleX / matrixCanvas._cellSize);
-      const row = Math.floor((e.clientY - rect.top) * scaleY / matrixCanvas._cellSize);
+      const col = Math.floor((e.clientX - rect.left) * scaleX);
+      const row = Math.floor((e.clientY - rect.top) * scaleY);
       const m = matrixCanvas._thermalMatrix;
       if (row >= 0 && row < m.length && col >= 0 && col < m[0].length) {
         const val = m[row][col];
