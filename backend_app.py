@@ -13,10 +13,12 @@ from PIL import Image
 import re
 import json
 from urllib.request import urlopen, Request
+from pathlib import Path
 
 # Add PRE_PROCESSING directory to path
-pre_processing_path = os.path.join(os.getcwd(), 'Pre processing')
-sys.path.append(pre_processing_path)
+BASE_DIR = Path(__file__).resolve().parent
+pre_processing_path = BASE_DIR / 'Pre processing'
+sys.path.append(str(pre_processing_path))
 
 try:
     from step4_dataloader import ThermalSRDataset
@@ -25,8 +27,8 @@ except ImportError as e:
     print(f"Error importing modules: {e}")
 
 # Configuration
-DATASET_ROOT = os.path.join(os.getcwd(), 'dataset')
-CHECKPOINT_PATH = os.path.join(os.getcwd(), 'checkpoints', 'best_model.pth')
+DATASET_ROOT = str(BASE_DIR / 'dataset')
+CHECKPOINT_PATH = str(BASE_DIR / 'checkpoints' / 'best_model.pth')
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 app = FastAPI()

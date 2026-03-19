@@ -1043,6 +1043,7 @@ function generateThermalNoise(w, h, scale) {
 // ═══ RENDER MAIN THERMAL GRID ═══
 function renderThermalGrid() {
   const grid = document.getElementById('thermalGrid');
+  if (!grid) return;
   const W = 20, H = 14;
   const vals = generateThermalNoise(W, H);
   grid.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
