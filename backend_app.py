@@ -27,7 +27,15 @@ except ImportError as e:
     print(f"Error importing modules: {e}")
 
 # Configuration
-DATASET_ROOT = str(BASE_DIR / 'dataset')
+# Smart detection: Use full dataset if available locally, otherwise fallback to demo dataset (GitHub)
+if (BASE_DIR / 'dataset').exists():
+    DATASET_ROOT = str(BASE_DIR / 'dataset')
+elif (BASE_DIR / 'dataset_demo').exists():
+    DATASET_ROOT = str(BASE_DIR / 'dataset_demo')
+    print("Using demo dataset (dataset_demo)")
+else:
+    DATASET_ROOT = str(BASE_DIR / 'dataset')  # Default fallback
+
 CHECKPOINT_PATH = str(BASE_DIR / 'checkpoints' / 'best_model.pth')
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
