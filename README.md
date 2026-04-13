@@ -1,3 +1,35 @@
+# Smart Thermal Mapping For Urban Heat & Wildlife Monitoring
+
+## 🚀 Streamlit Cloud Deployment
+
+The app is deployed on **Streamlit Cloud** using `streamlit_app.py` as the entrypoint.
+
+### Streamlit Cloud settings
+| Setting | Value |
+|---|---|
+| Repository | `VaibhaviCNBhat/Smart-Thermal-Mapping-For-Urban-Heat-Wildlife-Monitoring` |
+| Branch | `master` |
+| **Main file path** | **`streamlit_app.py`** |
+| Python version | `3.11` (set via `runtime.txt`) |
+
+> ⚠️ **Do not** set the main file to `backend_app.py` — that file starts a FastAPI/Uvicorn
+> server and is not a Streamlit entrypoint.
+
+### Running locally
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Start the Streamlit app
+streamlit run streamlit_app.py
+
+# 3. (Optional) Also start the FastAPI backend on a separate port
+uvicorn backend_app:app --host 0.0.0.0 --port 8000
+```
+
+---
+
 # -Smart-Thermal-Mapping-For-Urban-Heat-Wildlife-Monitoring
 📌 Overview
 This project focuses on enhancing low-resolution thermal satellite imagery using high-resolution optical imagery as structural guidance. Thermal infrared (TIR) images provide accurate surface temperature measurements but suffer from limited spatial resolution. In contrast, optical images capture sharp spatial details but lack temperature information.
