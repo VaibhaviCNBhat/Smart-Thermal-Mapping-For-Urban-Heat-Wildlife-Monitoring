@@ -1,11 +1,19 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-fastapi>=0.110.0
-uvicorn>=0.29.0
-python-multipart>=0.0.9
+# Core ML / scientific stack
+# torch is available on PyPI (CPU wheels); no custom index needed.
 torch>=2.2.0
 numpy>=1.26.0
 matplotlib>=3.8.3
 Pillow>=10.2.0
 scipy>=1.12.0
+
+# Streamlit UI (Streamlit Cloud entrypoint: streamlit_app.py)
+streamlit>=1.32.0
+
+# HTTP utilities
 requests>=2.31.0
 huggingface_hub>=0.20.0
+
+# FastAPI backend (for local / Render.com deployment via backend_app.py)
+fastapi>=0.110.0
+uvicorn>=0.29.0
+python-multipart>=0.0.9
